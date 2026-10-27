@@ -243,10 +243,11 @@
     return v - Math.floor(v);
   }
   function syntheticSignals(x,y) {
+    const ll = unproject(x, y);
     const dx=(x-cxy[0])/1000, dy=(y-cxy[1])/1000;
     const centerProximity=Math.max(0,1-Math.sqrt(dx*dx+dy*dy)/12);
     return {
-      green: 0.2 + 0.65*hash(Math.round(x/CELL),Math.round(y/CELL),1),
+      green: greenSpaceSignal(ll[0], ll[1]) ?? (0.2 + 0.65*hash(Math.round(x/CELL),Math.round(y/CELL),1)),
       transit: 0.25 + 0.55*hash(Math.round(x/CELL),Math.round(y/CELL),2) + centerProximity*0.15,
       schools: 0.2 + 0.6*hash(Math.round(x/CELL),Math.round(y/CELL),3),
       shops: 0.2 + 0.65*hash(Math.round(x/CELL),Math.round(y/CELL),4) + centerProximity*0.1,
