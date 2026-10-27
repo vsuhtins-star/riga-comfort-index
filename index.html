@@ -292,6 +292,7 @@
         }));
 
       greenSpacesLoaded = true;
+      generateGrid();
       $("mapStatus").textContent =
         `Loaded ${greenSpaces.length} mapped green spaces.`;
     } catch (error) {
