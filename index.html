@@ -254,6 +254,71 @@
       roads: 0.2 + 0.6*hash(Math.round(x/CELL),Math.round(y/CELL),6)
     };
   }
+  // Real green-space data loaded from OpenStreetMap.
+  let greenSpaces = [];
+  let greenSpacesLoaded = false;
+
+  async function loadGreenSpaces() {
+    const query = `
+      [out:json][timeout:25];
+      (
+        way["leisure"~"^(park|garden|nature_reserve)$"](56.85,23.95,57.10,24.35);
+        relation["leisure"~"^(park|garden|nature_reserve)$"](56.85,23.95,57.10,24.35);
+        way["landuse"="forest"](56.85,23.95,57.10,24.35);
+        way["natural"="wood"](56.85,23.95,57.10,24.35);
+      );
+      out center tags;
+    `;
+
+    try {
+      const response = await fetch(
+        "https://overpass-api.de/api/interpreter",
+        {
+          method: "POST",
+          body: "data=" + encodeURIComponent(query)
+        }
+      );
+
+      if (!response.ok) throw new Error("Green-space data unavailable");
+
+      const data = await response.json();
+
+      greenSpaces = data.elements
+        .filter(item => item.center)
+        .map(item => ({
+          lat: item.center.lat,
+          lon: item.center.lon
+        }));
+
+      greenSpacesLoaded = true;
+      $("mapStatus").textContent =
+        `Loaded ${greenSpaces.length} mapped green spaces.`;
+    } catch (error) {
+      console.error(error);
+      $("mapStatus").textContent =
+        "Green-space data unavailable; demo scores remain in use.";
+    }
+  }
+
+  function greenSpaceSignal(lat, lon) {
+    if (!greenSpacesLoaded || greenSpaces.length === 0) return null;
+
+    let nearestKm = Infinity;
+
+    for (const space of greenSpaces) {
+      const dy = (space.lat - lat) * 111;
+      const dx = (space.lon - lon) * 111 *
+        Math.cos(lat * Math.PI / 180);
+
+      nearestKm = Math.min(
+        nearestKm,
+        Math.sqrt(dx * dx + dy * dy)
+      );
+    }
+
+    return Math.max(0, Math.min(1, 1 - nearestKm / 1.5));
+  }
+  
   function calculate(cell) {
     let pos=0, neg=0, pw=0, nw=0;
     const breakdown = [];
