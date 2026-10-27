@@ -320,7 +320,7 @@
 
     return Math.max(0, Math.min(1, 1 - nearestKm / 1.5));
   }
-  
+
   function calculate(cell) {
     let pos=0, neg=0, pw=0, nw=0;
     const breakdown = [];
@@ -432,6 +432,7 @@
   let timer;
   map.on("moveend",()=>{clearTimeout(timer);timer=setTimeout(generateGrid,100);});
   renderFactors();
+  loadGreenSpaces();
   fetch("./riga_neighborhoods.geojson")
     .then(res=>{ if(!res.ok) throw new Error("Neighbourhood GeoJSON could not be loaded"); return res.json(); })
     .then(data=>{
