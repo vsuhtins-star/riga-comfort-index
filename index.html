@@ -176,6 +176,9 @@
     maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
   const gridLayer = L.layerGroup().addTo(map);
+  const neighborhoodLayer = L.layerGroup().addTo(map);
+  let neighborhoodFeatures = [];
+  let boundariesReady = false;
   const factorRoot = document.getElementById("factors");
   const $ = id => document.getElementById(id);
 
@@ -208,6 +211,33 @@
     return [lat,lon];
   }
   const cxy = project(center[0],center[1]);
+
+  // GeoJSON uses [longitude, latitude]. This ray-casting helper supports
+  // Polygon and MultiPolygon geometries, including interior rings (holes).
+  function pointInRing(lon, lat, ring) {
+    let inside = false;
+    for (let i=0, j=ring.length-1; i<ring.length; j=i++) {
+      const xi=ring[i][0], yi=ring[i][1], xj=ring[j][0], yj=ring[j][1];
+      const crosses = ((yi > lat) !== (yj > lat)) &&
+        (lon < (xj-xi) * (lat-yi) / ((yj-yi) || 1e-15) + xi);
+      if (crosses) inside = !inside;
+    }
+    return inside;
+  }
+  function pointInPolygon(lon, lat, rings) {
+    if (!rings.length || !pointInRing(lon,lat,rings[0])) return false;
+    for (let i=1; i<rings.length; i++) if (pointInRing(lon,lat,rings[i])) return false;
+    return true;
+  }
+  function pointInGeometry(lon, lat, geometry) {
+    if (!geometry) return false;
+    if (geometry.type === "Polygon") return pointInPolygon(lon,lat,geometry.coordinates);
+    if (geometry.type === "MultiPolygon") return geometry.coordinates.some(poly=>pointInPolygon(lon,lat,poly));
+    return false;
+  }
+  function pointInRigaNeighborhoods(lon, lat) {
+    return neighborhoodFeatures.some(feature=>pointInGeometry(lon,lat,feature.geometry));
+  }
   function hash(a,b,k=0) {
     const v = Math.sin(a*12.9898 + b*78.233 + k*37.719) * 43758.5453;
     return v - Math.floor(v);
@@ -247,6 +277,11 @@
     return "#43866a";
   }
   function generateGrid() {
+    if (!boundariesReady) {
+      gridLayer.clearLayers(); cells=[];
+      $("mapStatus").textContent="Loading Riga neighbourhood boundaries…";
+      return;
+    }
     if (map.getZoom() < 11) {
       gridLayer.clearLayers(); cells=[];
       $("mapStatus").textContent="Zoom in to inspect the 500 m grid.";
@@ -263,8 +298,9 @@
       for(let y=y0; y<y1; y+=step) {
         const centerXY=[x+step/2,y+step/2];
         const ll=unproject(centerXY[0],centerXY[1]);
-        // Approximate Riga focus window; cells outside this window are not shown.
-        if(ll[0]<56.80 || ll[0]>57.08 || ll[1]<23.82 || ll[1]>24.40) continue;
+        // Keep only cell centres that fall inside an official neighbourhood polygon.
+        // The 500 m rectangles are not geometrically clipped to polygon edges.
+        if (!pointInRigaNeighborhoods(ll[1],ll[0])) continue;
         const swll=unproject(x,y), sell=unproject(x+step,y+step);
         const cell={id:`${Math.round(x)}:${Math.round(y)}`, x,y,step,lat:ll[0],lon:ll[1],bounds:[[swll[0],swll[1]],[sell[0],sell[1]]],signals:syntheticSignals(centerXY[0],centerXY[1])};
         cell.result=calculate(cell);
@@ -279,7 +315,7 @@
       if(next) selectCell(next);
       else { selected=null; $("score").textContent="—"; $("scoreCaption").textContent="Select a cell on the map"; }
     }
-    $("mapStatus").textContent=`${cells.length.toLocaleString()} illustrative grid cells visible. Select a cell for details.`;
+    $("mapStatus").textContent=`${cells.length.toLocaleString()} illustrative grid cells inside Riga neighbourhoods. Select a cell for details.`;
   }
   function selectCell(cell, layer) {
     selected=cell; cell.result=calculate(cell);
@@ -329,7 +365,27 @@
   let timer;
   map.on("moveend",()=>{clearTimeout(timer);timer=setTimeout(generateGrid,100);});
   renderFactors();
-  setTimeout(generateGrid,150);
+  fetch("./riga_neighborhoods.geojson")
+    .then(res=>{ if(!res.ok) throw new Error("Neighbourhood GeoJSON could not be loaded"); return res.json(); })
+    .then(data=>{
+      neighborhoodFeatures = Array.isArray(data.features) ? data.features : [];
+      if (!neighborhoodFeatures.length) throw new Error("No neighbourhood features were found");
+      const boundaryGeoJSON = L.geoJSON(data, {
+        style: {color:"#294f40", weight:1.4, opacity:0.9, fillColor:"#8fb6a0", fillOpacity:0.035},
+        onEachFeature: (feature, layer) => {
+          const name = feature.properties && (feature.properties.apkaime || feature.properties.name || feature.properties.Nosaukums);
+          if (name) layer.bindTooltip(String(name), {sticky:true, direction:"top"});
+        }
+      });
+      neighborhoodLayer.addLayer(boundaryGeoJSON);
+      boundariesReady = true;
+      map.fitBounds(boundaryGeoJSON.getBounds(), {padding:[12,12]});
+      generateGrid();
+    })
+    .catch(err=>{
+      console.error(err);
+      $("mapStatus").textContent="Could not load neighbourhood boundaries. Check that riga_neighborhoods.geojson is in the repository root.";
+    });
 })();
 </script>
 </body>
