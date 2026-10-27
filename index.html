@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Riga Comfort Index — Prototype</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <style>
+    :root {
+      --ink:#182522; --muted:#697773; --paper:#f6f7f2; --panel:#fff;
+      --line:#e2e8e2; --green:#236b4e; --mint:#dcefe3; --orange:#bd6b3e;
+      --shadow:0 12px 34px rgba(19,40,31,.10);
+    }
+    * { box-sizing:border-box; }
+    html,body { margin:0; height:100%; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink); background:var(--paper); }
+    .app { height:100%; display:grid; grid-template-rows:auto 1fr; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:15px 22px; background:#fff; border-bottom:1px solid var(--line); z-index:1000; }
+    .brand { display:flex; align-items:center; gap:12px; min-width:0; }
+    .mark { width:38px; height:38px; background:var(--green); color:white; display:grid; place-items:center; border-radius:12px; font-size:21px; font-weight:800; }
+    h1 { margin:0; font-size:18px; letter-spacing:-.04em; }
+    .subtitle { color:var(--muted); font-size:12px; margin-top:3px; }
+    .header-right { display:flex; align-items:center; gap:12px; }
+    .status { display:inline-flex; align-items:center; gap:7px; background:#fff2e7; color:#884b2b; border:1px solid #f0d5c2; border-radius:999px; padding:7px 11px; font-size:11px; font-weight:750; white-space:nowrap; }
+    .status:before { content:""; width:7px; height:7px; border-radius:50%; background:#d6814c; }
+    .search { display:flex; gap:7px; width:min(360px,40vw); }
+    input,button { font:inherit; }
+    .search input { min-width:0; flex:1; border:1px solid var(--line); background:#f9faf7; padding:10px 12px; border-radius:10px; outline:none; }
+    .search input:focus { border-color:#6b9e83; box-shadow:0 0 0 3px #dcefe3; }
+    button { cursor:pointer; border:0; border-radius:10px; padding:10px 13px; font-weight:700; }
+    .primary { color:white; background:var(--green); }
+    .layout { min-height:0; display:grid; grid-template-columns:340px minmax(0,1fr); }
+    aside { overflow:auto; padding:20px; background:var(--paper); border-right:1px solid var(--line); }
+    .eyebrow { font-size:10px; text-transform:uppercase; letter-spacing:.13em; color:var(--muted); font-weight:800; }
+    .intro h2 { font-size:24px; line-height:1.12; letter-spacing:-.05em; margin:8px 0; }
+    .intro p { font-size:12px; line-height:1.6; color:var(--muted); margin:0; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:15px; margin-top:15px; box-shadow:0 2px 8px rgba(20,40,30,.02); }
+    .card-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; }
+    .card h3 { margin:0; font-size:13px; letter-spacing:-.02em; }
+    .tiny { font-size:10px; color:var(--muted); }
+    .score-row { display:flex; align-items:end; justify-content:space-between; gap:10px; }
+    .score { font-size:44px; font-weight:800; letter-spacing:-.07em; line-height:1; }
+    .score small { font-size:15px; color:var(--muted); letter-spacing:0; }
+    .score-tag { font-size:11px; font-weight:750; padding:7px 9px; border-radius:9px; background:var(--mint); color:var(--green); }
+    .meter { height:8px; background:#edf0ea; border-radius:20px; overflow:hidden; margin:13px 0 8px; }
+    .meter span { display:block; height:100%; width:0; background:linear-gradient(90deg,#d68c58,#d7c46c,#4d9a70); border-radius:20px; transition:width .2s; }
+    .scale { display:flex; justify-content:space-between; color:var(--muted); font-size:10px; }
+    .factor { margin:13px 0; }
+    .factor-top { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; margin-bottom:7px; }
+    .factor-top label { display:flex; gap:8px; align-items:center; font-weight:650; }
+    .factor-top output { color:var(--muted); font-variant-numeric:tabular-nums; font-size:11px; }
+    .factor input[type=range] { width:100%; accent-color:var(--green); }
+    .factor input[type=checkbox] { accent-color:var(--green); }
+    .legend { display:flex; gap:3px; height:9px; margin:7px 0; }
+    .legend span { flex:1; border-radius:3px; }
+    .legend-labels { display:flex; justify-content:space-between; color:var(--muted); font-size:10px; }
+    .selected-title { font-weight:750; font-size:13px; }
+    .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px; }
+    .detail { padding:10px; background:#f6f8f4; border-radius:10px; }
+    .detail b { display:block; font-size:16px; letter-spacing:-.04em; }
+    .detail span { color:var(--muted); font-size:10px; }
+    .notice { font-size:11px; line-height:1.55; padding:12px; background:#fff5e9; color:#80512f; border-radius:12px; margin-top:14px; border:1px solid #f2dfca; }
+    .ranking-row { display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid #eef1eb; font-size:11px; }
+    .ranking-row:last-child { border-bottom:0; }
+    .rank-num { width:23px; height:23px; display:grid; place-items:center; border-radius:7px; background:#eef4ee; font-weight:800; }
+    .ranking-row span:last-child { margin-left:auto; color:var(--muted); font-size:10px; }
+    #map { width:100%; height:100%; min-height:360px; background:#e8eee7; }
+    .map-wrap { position:relative; min-width:0; min-height:0; }
+    .map-chip { position:absolute; z-index:500; left:16px; top:16px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.94); box-shadow:var(--shadow); border:1px solid #e2e8e2; font-size:11px; max-width:300px; }
+    .map-chip strong { display:block; font-size:12px; margin-bottom:3px; }
+    .map-legend { position:absolute; z-index:500; bottom:20px; right:18px; width:220px; padding:13px; border-radius:13px; background:rgba(255,255,255,.96); box-shadow:var(--shadow); border:1px solid var(--line); }
+    .map-legend .legend { margin:10px 0 5px; }
+    .map-legend p { font-size:10px; color:var(--muted); margin:0; }
+    .leaflet-popup-content-wrapper { border-radius:12px; }
+    .popup-score { font-size:25px; font-weight:800; }
+    .popup-note { color:#6b7770; font-size:11px; line-height:1.4; max-width:210px; }
+    .footer-note { font-size:10px; color:var(--muted); line-height:1.5; margin-top:12px; }
+    .mobile-toggle { display:none; }
+    @media (max-width:850px) {
+      header { flex-wrap:wrap; padding:12px 14px; }
+      .header-right { width:100%; justify-content:space-between; }
+      .search { width:100%; flex:1; }
+      .layout { grid-template-columns:1fr; grid-template-rows:auto minmax(440px,1fr); }
+      aside { max-height:44vh; border-right:0; border-bottom:1px solid var(--line); padding:13px; }
+      .intro { display:none; }
+      .card { margin-top:10px; }
+      .settings-card { display:none; }
+      .settings-card.open { display:block; }
+      .mobile-toggle { display:inline-block; background:#eef4ee; color:var(--green); }
+      .map-chip { top:10px; left:10px; max-width:230px; }
+      .map-legend { bottom:10px; right:10px; width:180px; }
+      .status { font-size:10px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="mark">R</div>
+      <div><h1>Riga Comfort Index</h1><div class="subtitle">Explore the everyday environment, one city block at a time</div></div>
+    </div>
+    <div class="header-right">
+      <div class="status">Prototype · illustrative scores</div>
+      <form class="search" id="searchForm">
+        <input id="address" aria-label="Search for an address" placeholder="Search a Riga address or place…">
+        <button class="primary" type="submit">Search</button>
+      </form>
+    </div>
+  </header>
+  <div class="layout">
+    <aside>
+      <div class="intro">
+        <div class="eyebrow">City comfort, made legible</div>
+        <h2>Where does Riga feel best to live?</h2>
+        <p>Explore a grid-based comfort index and see how nearby amenities and environmental factors could shape a location's score.</p>
+      </div>
+      <section class="card">
+        <div class="card-head"><h3>Selected grid cell</h3><span class="tiny">500 × 500 m</span></div>
+        <div class="score-row">
+          <div><div class="score"><span id="score">—</span><small>/100</small></div><div class="tiny" id="scoreCaption">Select a cell on the map</div></div>
+          <span class="score-tag" id="scoreLabel">Demo only</span>
+        </div>
+        <div class="meter"><span id="scoreMeter"></span></div>
+        <div class="scale"><span>Lower comfort</span><span>Higher comfort</span></div>
+        <div class="detail-grid">
+          <div class="detail"><b id="posCount">—</b><span>Positive signals*</span></div>
+          <div class="detail"><b id="negCount">—</b><span>Negative signals*</span></div>
+        </div>
+      </section>
+      <section class="card settings-card open" id="settingsCard">
+        <div class="card-head"><h3>Customize your index</h3><button id="reset" class="tiny" style="background:#eef4ee;padding:6px 8px">Reset</button></div>
+        <p class="tiny">Adjust importance. Grid colors and selected-cell scores update immediately.</p>
+        <div id="factors"></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h3>Comfort scale</h3><span class="tiny">0–100</span></div>
+        <div class="legend"><span style="background:#b85e45"></span><span style="background:#d68b61"></span><span style="background:#e8c978"></span><span style="background:#a8cba0"></span><span style="background:#43866a"></span></div>
+        <div class="legend-labels"><span>Lower</span><span>Higher</span></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h3>What this prototype does</h3></div>
+        <div class="tiny" style="line-height:1.6">
+          <p>This is a working interface prototype with a 500 m grid, selectable cells, search, and adjustable factor weights.</p>
+          <p><b>Not real scores yet:</b> the current grid values are generated for UI testing. They do not use verified Riga amenities, neighborhood polygons, or official environmental measurements.</p>
+        </div>
+      </section>
+      <div class="footer-note">Map © OpenStreetMap contributors. This prototype uses public map tiles and a public geocoding service; follow their usage policies before production deployment.</div>
+    </aside>
+    <main class="map-wrap">
+      <div id="map" aria-label="Interactive map of Riga"></div>
+      <div class="map-chip"><strong>Riga · 500 m analysis grid</strong><span id="mapStatus">Click a cell to inspect its illustrative score.</span></div>
+      <div class="map-legend"><div class="eyebrow">Comfort index</div><div class="legend"><span style="background:#b85e45"></span><span style="background:#d68b61"></span><span style="background:#e8c978"></span><span style="background:#a8cba0"></span><span style="background:#43866a"></span></div><p>Grid colors are illustrative until real data is integrated.</p></div>
+    </main>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+(() => {
+  const center = [56.9496, 24.1052];
+  const CELL = 500;
+  const FACTORS = [
+    {id:"green", label:"Parks & green space", group:"Positive", weight:80, base:0.7},
+    {id:"transit", label:"Public transport", group:"Positive", weight:85, base:0.8},
+    {id:"schools", label:"Schools & healthcare", group:"Positive", weight:55, base:0.5},
+    {id:"shops", label:"Daily amenities", group:"Positive", weight:60, base:0.55},
+    {id:"noise", label:"Noise exposure", group:"Negative", weight:65, base:0.6},
+    {id:"roads", label:"Major roads", group:"Negative", weight:50, base:0.45}
+  ];
+  const defaults = Object.fromEntries(FACTORS.map(f => [f.id, {enabled:true, weight:f.weight}]));
+  let settings = JSON.parse(JSON.stringify(defaults));
+  let cells = [];
+  let selected = null;
+  const map = L.map("map", {zoomControl:true}).setView(center, 12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+  const gridLayer = L.layerGroup().addTo(map);
+  const factorRoot = document.getElementById("factors");
+  const $ = id => document.getElementById(id);
+
+  function renderFactors() {
+    factorRoot.innerHTML = "";
+    FACTORS.forEach(f => {
+      const row = document.createElement("div");
+      row.className = "factor";
+      row.innerHTML = `<div class="factor-top"><label><input type="checkbox" data-enabled="${f.id}" ${settings[f.id].enabled?"checked":""}> ${f.label}</label><output id="out-${f.id}">${settings[f.id].weight}%</output></div><input type="range" min="0" max="100" step="5" value="${settings[f.id].weight}" data-weight="${f.id}" aria-label="${f.label} importance">`;
+      factorRoot.appendChild(row);
+    });
+    factorRoot.querySelectorAll("[data-enabled]").forEach(el => el.addEventListener("change", () => {
+      settings[el.dataset.enabled].enabled = el.checked; updateGrid();
+    }));
+    factorRoot.querySelectorAll("[data-weight]").forEach(el => el.addEventListener("input", () => {
+      settings[el.dataset.weight].weight = Number(el.value);
+      $("out-"+el.dataset.weight).textContent = el.value + "%";
+      updateGrid();
+    }));
+  }
+  function project(lat, lon) {
+    const x = lon * 20037508.34 / 180;
+    const y = Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180) * 20037508.34 / 180;
+    return [x,y];
+  }
+  function unproject(x,y) {
+    const lon = x / 20037508.34 * 180;
+    let lat = y / 20037508.34 * 180;
+    lat = 180/Math.PI*(2*Math.atan(Math.exp(lat*Math.PI/180))-Math.PI/2);
+    return [lat,lon];
+  }
+  const cxy = project(center[0],center[1]);
+  function hash(a,b,k=0) {
+    const v = Math.sin(a*12.9898 + b*78.233 + k*37.719) * 43758.5453;
+    return v - Math.floor(v);
+  }
+  function syntheticSignals(x,y) {
+    const dx=(x-cxy[0])/1000, dy=(y-cxy[1])/1000;
+    const centerProximity=Math.max(0,1-Math.sqrt(dx*dx+dy*dy)/12);
+    return {
+      green: 0.2 + 0.65*hash(Math.round(x/CELL),Math.round(y/CELL),1),
+      transit: 0.25 + 0.55*hash(Math.round(x/CELL),Math.round(y/CELL),2) + centerProximity*0.15,
+      schools: 0.2 + 0.6*hash(Math.round(x/CELL),Math.round(y/CELL),3),
+      shops: 0.2 + 0.65*hash(Math.round(x/CELL),Math.round(y/CELL),4) + centerProximity*0.1,
+      noise: 0.2 + 0.6*hash(Math.round(x/CELL),Math.round(y/CELL),5) + centerProximity*0.08,
+      roads: 0.2 + 0.6*hash(Math.round(x/CELL),Math.round(y/CELL),6)
+    };
+  }
+  function calculate(cell) {
+    let pos=0, neg=0, pw=0, nw=0;
+    const breakdown = [];
+    FACTORS.forEach(f => {
+      if (!settings[f.id].enabled || settings[f.id].weight===0) return;
+      const v = cell.signals[f.id];
+      const contribution = (v-0.5) * (settings[f.id].weight/100) * 34;
+      if (f.group==="Positive") { pos += contribution; pw += settings[f.id].weight; }
+      else { neg += contribution; nw += settings[f.id].weight; }
+      breakdown.push({label:f.label, group:f.group, signal:v, contribution});
+    });
+    // Illustrative base varies by location; the factor controls change it predictably.
+    const raw = 57 + (cell.signals.green-0.5)*18 + (cell.signals.transit-0.5)*12 + (cell.signals.shops-0.5)*8 - (cell.signals.noise-0.5)*12 - (cell.signals.roads-0.5)*8 + pos*0.45 + neg*0.45;
+    return {score:Math.max(0,Math.min(100,Math.round(raw))), breakdown, pos:breakdown.filter(x=>x.group==="Positive"&&x.signal>0.55).length, neg:breakdown.filter(x=>x.group==="Negative"&&x.signal>0.55).length};
+  }
+  function color(score) {
+    if(score<25) return "#b85e45";
+    if(score<42) return "#d68b61";
+    if(score<58) return "#e8c978";
+    if(score<76) return "#a8cba0";
+    return "#43866a";
+  }
+  function generateGrid() {
+    if (map.getZoom() < 11) {
+      gridLayer.clearLayers(); cells=[];
+      $("mapStatus").textContent="Zoom in to inspect the 500 m grid.";
+      return;
+    }
+    gridLayer.clearLayers(); cells=[];
+    const b=map.getBounds();
+    const sw=project(b.getSouth(),b.getWest()), ne=project(b.getNorth(),b.getEast());
+    const x0=Math.floor(sw[0]/CELL)*CELL, x1=Math.ceil(ne[0]/CELL)*CELL;
+    const y0=Math.floor(sw[1]/CELL)*CELL, y1=Math.ceil(ne[1]/CELL)*CELL;
+    // Limit number of polygons at low zoom for responsive rendering.
+    const step = (x1-x0)*(y1-y0)/(CELL*CELL)>1300 ? CELL*2 : CELL;
+    for(let x=x0; x<x1; x+=step) {
+      for(let y=y0; y<y1; y+=step) {
+        const centerXY=[x+step/2,y+step/2];
+        const ll=unproject(centerXY[0],centerXY[1]);
+        // Approximate Riga focus window; cells outside this window are not shown.
+        if(ll[0]<56.80 || ll[0]>57.08 || ll[1]<23.82 || ll[1]>24.40) continue;
+        const swll=unproject(x,y), sell=unproject(x+step,y+step);
+        const cell={id:`${Math.round(x)}:${Math.round(y)}`, x,y,step,lat:ll[0],lon:ll[1],bounds:[[swll[0],swll[1]],[sell[0],sell[1]]],signals:syntheticSignals(centerXY[0],centerXY[1])};
+        cell.result=calculate(cell);
+        const rect=L.rectangle(cell.bounds,{color:"#ffffff",weight:0.7,opacity:0.8,fillColor:color(cell.result.score),fillOpacity:0.53});
+        rect.on("click",()=>selectCell(cell,rect));
+        rect.bindTooltip(`Illustrative score: ${cell.result.score}`,{sticky:true,direction:"top",opacity:.9});
+        cell.layer=rect; gridLayer.addLayer(rect); cells.push(cell);
+      }
+    }
+    if(selected) {
+      const next=cells.find(c=>c.id===selected.id);
+      if(next) selectCell(next);
+      else { selected=null; $("score").textContent="—"; $("scoreCaption").textContent="Select a cell on the map"; }
+    }
+    $("mapStatus").textContent=`${cells.length.toLocaleString()} illustrative grid cells visible. Select a cell for details.`;
+  }
+  function selectCell(cell, layer) {
+    selected=cell; cell.result=calculate(cell);
+    cells.forEach(c=>{ if(c.layer) c.layer.setStyle({weight:0.7,color:"#ffffff",fillOpacity:0.53}); });
+    if(layer) layer.setStyle({weight:2.5,color:"#183e30",fillOpacity:0.82});
+    else if(cell.layer) cell.layer.setStyle({weight:2.5,color:"#183e30",fillOpacity:0.82});
+    $("score").textContent=cell.result.score;
+    $("scoreMeter").style.width=cell.result.score+"%";
+    $("scoreCaption").textContent=`${cell.lat.toFixed(4)}, ${cell.lon.toFixed(4)}`;
+    $("scoreLabel").textContent=cell.result.score>=70?"Higher (demo)":cell.result.score>=48?"Middle (demo)":"Lower (demo)";
+    $("posCount").textContent=cell.result.pos;
+    $("negCount").textContent=cell.result.neg;
+    if(layer) layer.bindPopup(`<div class="popup-score">${cell.result.score}<span style="font-size:12px;color:#6b7770"> / 100</span></div><div class="popup-note">Illustrative prototype score — not calculated from verified local data.</div>`).openPopup();
+  }
+  function updateGrid() {
+    cells.forEach(cell=>{
+      cell.result=calculate(cell);
+      if(cell.layer) cell.layer.setStyle({fillColor:color(cell.result.score)});
+    });
+    if(selected) {
+      selected.result=calculate(selected);
+      $("score").textContent=selected.result.score;
+      $("scoreMeter").style.width=selected.result.score+"%";
+      $("scoreLabel").textContent=selected.result.score>=70?"Higher (demo)":selected.result.score>=48?"Middle (demo)":"Lower (demo)";
+      $("posCount").textContent=selected.result.pos; $("negCount").textContent=selected.result.neg;
+    }
+  }
+  $("reset").addEventListener("click",()=>{settings=JSON.parse(JSON.stringify(defaults));renderFactors();updateGrid();});
+  $("searchForm").addEventListener("submit", async e=>{
+    e.preventDefault();
+    const q=$("address").value.trim();
+    if(!q) return;
+    $("mapStatus").textContent="Searching…";
+    try {
+      const url="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=lv&q="+encodeURIComponent(q+" Riga");
+      const res=await fetch(url,{headers:{"Accept":"application/json"}});
+      if(!res.ok) throw new Error("Search service unavailable");
+      const data=await res.json();
+      if(!data.length) { $("mapStatus").textContent="No result found. Try a street name or a more specific address."; return; }
+      const lat=Number(data[0].lat), lon=Number(data[0].lon);
+      map.setView([lat,lon],15);
+      $("mapStatus").textContent="Search result: "+data[0].display_name;
+    } catch(err) {
+      $("mapStatus").textContent="Address search failed. Check your connection or try again later.";
+    }
+  });
+  let timer;
+  map.on("moveend",()=>{clearTimeout(timer);timer=setTimeout(generateGrid,100);});
+  renderFactors();
+  setTimeout(generateGrid,150);
+})();
+</script>
+</body>
+</html>
