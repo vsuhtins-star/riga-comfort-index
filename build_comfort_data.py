@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 BBOX = "(56.85,23.95,57.10,24.35)"  # south,west,north,east; covers Riga and nearby edge areas
-OUT = Path("data/comfort-features.geojson")
+OUT = Path("comfort-features.geojson")
 QUERY = f"""
 [out:json][timeout:90];
 (
