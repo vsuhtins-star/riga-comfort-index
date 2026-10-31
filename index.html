@@ -1,459 +1,214 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Riga Comfort Index — Prototype</title>
-  <link rel="preconnect" href="https://unpkg.com">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-  <style>
-    :root {
-      --ink:#182522; --muted:#697773; --paper:#f6f7f2; --panel:#fff;
-      --line:#e2e8e2; --green:#236b4e; --mint:#dcefe3; --orange:#bd6b3e;
-      --shadow:0 12px 34px rgba(19,40,31,.10);
-    }
-    * { box-sizing:border-box; }
-    html,body { margin:0; height:100%; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink); background:var(--paper); }
-    .app { height:100%; display:grid; grid-template-rows:auto 1fr; }
-    header { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:15px 22px; background:#fff; border-bottom:1px solid var(--line); z-index:1000; }
-    .brand { display:flex; align-items:center; gap:12px; min-width:0; }
-    .mark { width:38px; height:38px; background:var(--green); color:white; display:grid; place-items:center; border-radius:12px; font-size:21px; font-weight:800; }
-    h1 { margin:0; font-size:18px; letter-spacing:-.04em; }
-    .subtitle { color:var(--muted); font-size:12px; margin-top:3px; }
-    .header-right { display:flex; align-items:center; gap:12px; }
-    .status { display:inline-flex; align-items:center; gap:7px; background:#fff2e7; color:#884b2b; border:1px solid #f0d5c2; border-radius:999px; padding:7px 11px; font-size:11px; font-weight:750; white-space:nowrap; }
-    .status:before { content:""; width:7px; height:7px; border-radius:50%; background:#d6814c; }
-    .search { display:flex; gap:7px; width:min(360px,40vw); }
-    input,button { font:inherit; }
-    .search input { min-width:0; flex:1; border:1px solid var(--line); background:#f9faf7; padding:10px 12px; border-radius:10px; outline:none; }
-    .search input:focus { border-color:#6b9e83; box-shadow:0 0 0 3px #dcefe3; }
-    button { cursor:pointer; border:0; border-radius:10px; padding:10px 13px; font-weight:700; }
-    .primary { color:white; background:var(--green); }
-    .layout { min-height:0; display:grid; grid-template-columns:340px minmax(0,1fr); }
-    aside { overflow:auto; padding:20px; background:var(--paper); border-right:1px solid var(--line); }
-    .eyebrow { font-size:10px; text-transform:uppercase; letter-spacing:.13em; color:var(--muted); font-weight:800; }
-    .intro h2 { font-size:24px; line-height:1.12; letter-spacing:-.05em; margin:8px 0; }
-    .intro p { font-size:12px; line-height:1.6; color:var(--muted); margin:0; }
-    .card { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:15px; margin-top:15px; box-shadow:0 2px 8px rgba(20,40,30,.02); }
-    .card-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; }
-    .card h3 { margin:0; font-size:13px; letter-spacing:-.02em; }
-    .tiny { font-size:10px; color:var(--muted); }
-    .score-row { display:flex; align-items:end; justify-content:space-between; gap:10px; }
-    .score { font-size:44px; font-weight:800; letter-spacing:-.07em; line-height:1; }
-    .score small { font-size:15px; color:var(--muted); letter-spacing:0; }
-    .score-tag { font-size:11px; font-weight:750; padding:7px 9px; border-radius:9px; background:var(--mint); color:var(--green); }
-    .meter { height:8px; background:#edf0ea; border-radius:20px; overflow:hidden; margin:13px 0 8px; }
-    .meter span { display:block; height:100%; width:0; background:linear-gradient(90deg,#d68c58,#d7c46c,#4d9a70); border-radius:20px; transition:width .2s; }
-    .scale { display:flex; justify-content:space-between; color:var(--muted); font-size:10px; }
-    .factor { margin:13px 0; }
-    .factor-top { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; margin-bottom:7px; }
-    .factor-top label { display:flex; gap:8px; align-items:center; font-weight:650; }
-    .factor-top output { color:var(--muted); font-variant-numeric:tabular-nums; font-size:11px; }
-    .factor input[type=range] { width:100%; accent-color:var(--green); }
-    .factor input[type=checkbox] { accent-color:var(--green); }
-    .legend { display:flex; gap:3px; height:9px; margin:7px 0; }
-    .legend span { flex:1; border-radius:3px; }
-    .legend-labels { display:flex; justify-content:space-between; color:var(--muted); font-size:10px; }
-    .selected-title { font-weight:750; font-size:13px; }
-    .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px; }
-    .detail { padding:10px; background:#f6f8f4; border-radius:10px; }
-    .detail b { display:block; font-size:16px; letter-spacing:-.04em; }
-    .detail span { color:var(--muted); font-size:10px; }
-    .notice { font-size:11px; line-height:1.55; padding:12px; background:#fff5e9; color:#80512f; border-radius:12px; margin-top:14px; border:1px solid #f2dfca; }
-    .ranking-row { display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid #eef1eb; font-size:11px; }
-    .ranking-row:last-child { border-bottom:0; }
-    .rank-num { width:23px; height:23px; display:grid; place-items:center; border-radius:7px; background:#eef4ee; font-weight:800; }
-    .ranking-row span:last-child { margin-left:auto; color:var(--muted); font-size:10px; }
-    #map { width:100%; height:100%; min-height:360px; background:#e8eee7; }
-    .map-wrap { position:relative; min-width:0; min-height:0; }
-    .map-chip { position:absolute; z-index:500; left:16px; top:16px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.94); box-shadow:var(--shadow); border:1px solid #e2e8e2; font-size:11px; max-width:300px; }
-    .map-chip strong { display:block; font-size:12px; margin-bottom:3px; }
-    .map-legend { position:absolute; z-index:500; bottom:20px; right:18px; width:220px; padding:13px; border-radius:13px; background:rgba(255,255,255,.96); box-shadow:var(--shadow); border:1px solid var(--line); }
-    .map-legend .legend { margin:10px 0 5px; }
-    .map-legend p { font-size:10px; color:var(--muted); margin:0; }
-    .leaflet-popup-content-wrapper { border-radius:12px; }
-    .popup-score { font-size:25px; font-weight:800; }
-    .popup-note { color:#6b7770; font-size:11px; line-height:1.4; max-width:210px; }
-    .footer-note { font-size:10px; color:var(--muted); line-height:1.5; margin-top:12px; }
-    .mobile-toggle { display:none; }
-    @media (max-width:850px) {
-      header { flex-wrap:wrap; padding:12px 14px; }
-      .header-right { width:100%; justify-content:space-between; }
-      .search { width:100%; flex:1; }
-      .layout { grid-template-columns:1fr; grid-template-rows:auto minmax(440px,1fr); }
-      aside { max-height:44vh; border-right:0; border-bottom:1px solid var(--line); padding:13px; }
-      .intro { display:none; }
-      .card { margin-top:10px; }
-      .settings-card { display:none; }
-      .settings-card.open { display:block; }
-      .mobile-toggle { display:inline-block; background:#eef4ee; color:var(--green); }
-      .map-chip { top:10px; left:10px; max-width:230px; }
-      .map-legend { bottom:10px; right:10px; width:180px; }
-      .status { font-size:10px; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riga Comfort Index</title>
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+:root{--ink:#182522;--muted:#697773;--paper:#f6f7f2;--panel:#fff;--line:#e2e8e2;--green:#236b4e;--mint:#dcefe3;--orange:#bd6b3e;--shadow:0 12px 34px rgba(19,40,31,.10)}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper)}
+.app{height:100%;display:grid;grid-template-rows:auto 1fr}header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 20px;background:#fff;border-bottom:1px solid var(--line);z-index:1000}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}.mark{width:38px;height:38px;background:var(--green);color:white;display:grid;place-items:center;border-radius:12px;font-size:21px;font-weight:800}h1{margin:0;font-size:18px;letter-spacing:-.04em}.subtitle{color:var(--muted);font-size:12px;margin-top:3px}
+.header-right{display:flex;align-items:center;gap:12px}.status{display:inline-flex;align-items:center;gap:7px;background:#fff2e7;color:#884b2b;border:1px solid #f0d5c2;border-radius:999px;padding:7px 11px;font-size:11px;font-weight:750;white-space:nowrap}.status:before{content:"";width:7px;height:7px;border-radius:50%;background:#d6814c}
+.search{display:flex;gap:7px;width:min(360px,40vw)}input,button{font:inherit}input[type=search]{min-width:0;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none}button{border:0;border-radius:10px;background:var(--green);color:white;padding:10px 14px;font-weight:700;cursor:pointer}.layout{display:grid;grid-template-columns:340px minmax(0,1fr);min-height:0}.sidebar{overflow:auto;padding:20px;background:#fbfcf8;border-right:1px solid var(--line)}.eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.13em;font-weight:800;color:var(--green)}h2{font-size:26px;line-height:1.08;letter-spacing:-.05em;margin:9px 0 10px}.intro p,.small{font-size:12px;line-height:1.55;color:var(--muted)}.card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;margin-top:15px}.card h3{font-size:13px;margin:0 0 12px}.factor{padding:11px 0;border-top:1px solid #edf0eb}.factor:first-of-type{border-top:0}.factor-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:650}.factor-top label{display:flex;align-items:center;gap:8px}.factor-top output{color:var(--green);font-variant-numeric:tabular-nums}input[type=range]{width:100%;accent-color:var(--green);margin:9px 0 0}.factor-help{font-size:10px;color:var(--muted);margin-top:4px}.metric{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric div{background:#f6f8f3;border-radius:11px;padding:11px}.metric strong{display:block;font-size:20px;letter-spacing:-.04em}.metric span{font-size:10px;color:var(--muted)}.legend{display:flex;gap:5px;margin:10px 0}.legend span{height:9px;flex:1;border-radius:3px}#map{height:100%;min-height:420px;background:#e9eee8}.map-wrap{position:relative;min-height:0}.map-chip{position:absolute;left:14px;bottom:14px;z-index:500;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:12px;padding:10px 13px;max-width:min(520px,calc(100% - 28px));box-shadow:var(--shadow);font-size:11px}.map-chip strong{display:block;margin-bottom:3px}.map-chip span{color:var(--muted)}.leaflet-popup-content{line-height:1.5}.popup-score{font-size:27px;font-weight:800;color:var(--green)}.popup-note{max-width:240px;font-size:11px;color:var(--muted)}.pill{display:inline-block;border-radius:999px;background:#e8f3eb;color:#236b4e;padding:3px 7px;font-size:10px;font-weight:750;margin:2px 3px 2px 0}
+@media(max-width:850px){.layout{grid-template-columns:1fr;grid-template-rows:auto minmax(420px,1fr)}.sidebar{max-height:44vh;border-right:0;border-bottom:1px solid var(--line);padding:15px}.intro h2{font-size:22px}.header-right{align-items:stretch;flex-direction:column;gap:6px}.search{width:min(45vw,360px)}header{padding:10px 12px}.status{font-size:10px}}
+@media(max-width:560px){header{align-items:flex-start}.subtitle{max-width:170px}.header-right{width:48%}.search{width:100%}.status{white-space:normal}.layout{grid-template-rows:auto minmax(420px,1fr)}.sidebar{max-height:48vh}}
+</style>
 </head>
 <body>
 <div class="app">
-  <header>
-    <div class="brand">
-      <div class="mark">R</div>
-      <div><h1>Riga Comfort Index</h1><div class="subtitle">Explore the everyday environment, one city block at a time</div></div>
-    </div>
-    <div class="header-right">
-      <div class="status">Prototype · illustrative scores</div>
-      <form class="search" id="searchForm">
-        <input id="address" aria-label="Search for an address" placeholder="Search a Riga address or place…">
-        <button class="primary" type="submit">Search</button>
-      </form>
-    </div>
-  </header>
-  <div class="layout">
-    <aside>
-      <div class="intro">
-        <div class="eyebrow">City comfort, made legible</div>
-        <h2>Where does Riga feel best to live?</h2>
-        <p>Explore a grid-based comfort index and see how nearby amenities and environmental factors could shape a location's score.</p>
-      </div>
-      <section class="card">
-        <div class="card-head"><h3>Selected grid cell</h3><span class="tiny">500 × 500 m</span></div>
-        <div class="score-row">
-          <div><div class="score"><span id="score">—</span><small>/100</small></div><div class="tiny" id="scoreCaption">Select a cell on the map</div></div>
-          <span class="score-tag" id="scoreLabel">Demo only</span>
-        </div>
-        <div class="meter"><span id="scoreMeter"></span></div>
-        <div class="scale"><span>Lower comfort</span><span>Higher comfort</span></div>
-        <div class="detail-grid">
-          <div class="detail"><b id="posCount">—</b><span>Positive signals*</span></div>
-          <div class="detail"><b id="negCount">—</b><span>Negative signals*</span></div>
-        </div>
-      </section>
-      <section class="card settings-card open" id="settingsCard">
-        <div class="card-head"><h3>Customize your index</h3><button id="reset" class="tiny" style="background:#eef4ee;padding:6px 8px">Reset</button></div>
-        <p class="tiny">Adjust importance. Grid colors and selected-cell scores update immediately.</p>
-        <div id="factors"></div>
-      </section>
-      <section class="card">
-        <div class="card-head"><h3>Comfort scale</h3><span class="tiny">0–100</span></div>
-        <div class="legend"><span style="background:#b85e45"></span><span style="background:#d68b61"></span><span style="background:#e8c978"></span><span style="background:#a8cba0"></span><span style="background:#43866a"></span></div>
-        <div class="legend-labels"><span>Lower</span><span>Higher</span></div>
-      </section>
-      <section class="card">
-        <div class="card-head"><h3>What this prototype does</h3></div>
-        <div class="tiny" style="line-height:1.6">
-          <p>This is a working interface prototype with a 500 m grid, selectable cells, search, and adjustable factor weights.</p>
-          <p><b>Not real scores yet:</b> the current grid values are generated for UI testing. They do not use verified Riga amenities, neighborhood polygons, or official environmental measurements.</p>
-        </div>
-      </section>
-      <div class="footer-note">Map © OpenStreetMap contributors. This prototype uses public map tiles and a public geocoding service; follow their usage policies before production deployment.</div>
-    </aside>
-    <main class="map-wrap">
-      <div id="map" aria-label="Interactive map of Riga"></div>
-      <div class="map-chip"><strong>Riga · 500 m analysis grid</strong><span id="mapStatus">Click a cell to inspect its illustrative score.</span></div>
-      <div class="map-legend"><div class="eyebrow">Comfort index</div><div class="legend"><span style="background:#b85e45"></span><span style="background:#d68b61"></span><span style="background:#e8c978"></span><span style="background:#a8cba0"></span><span style="background:#43866a"></span></div><p>Grid colors are illustrative until real data is integrated.</p></div>
-    </main>
-  </div>
+<header>
+  <div class="brand"><div class="mark">R</div><div><h1>Riga Comfort Index</h1><div class="subtitle">A neighbourhood-level view of everyday comfort</div></div></div>
+  <div class="header-right"><div class="status">Live OSM + illustrative factors</div><form class="search" id="searchForm"><input id="address" type="search" aria-label="Search for an address" placeholder="Search a Riga address or place…"><button type="submit">Search</button></form></div>
+</header>
+<div class="layout">
+<aside class="sidebar">
+  <div class="intro"><div class="eyebrow">City comfort, made legible</div><h2>Where does Riga feel best to live?</h2><p>Explore a 500 m grid across Riga neighbourhoods. Four factors use nearby OpenStreetMap features when available; noise and major-road exposure remain illustrative for now.</p></div>
+  <div class="card"><h3>Comfort score</h3><div class="metric"><div><strong id="overallScore">—</strong><span>Selected cell / 100</span></div><div><strong id="dataCount">Loading</strong><span>Mapped OSM features</span></div></div><div class="legend"><span style="background:#b85e45"></span><span style="background:#d68b61"></span><span style="background:#e8c978"></span><span style="background:#a8cba0"></span><span style="background:#43866a"></span></div><p class="small">Scores are experimental proximity estimates, not a scientific or official ranking. Missing map data does not mean a facility is absent.</p></div>
+  <div class="card"><h3>Choose what matters</h3><div id="factors"></div></div>
+  <div class="card"><h3>Data notes</h3><p class="small" id="dataNote">Loading neighbourhood boundaries and public map data…</p><p class="small">Sources: OpenStreetMap contributors, public Overpass API, and the repository's Riga neighbourhood GeoJSON. Live requests can be slow or rate-limited. Data is cached in this browser for up to six hours.</p></div>
+</aside>
+<main class="map-wrap"><div id="map"></div><div class="map-chip"><strong>Riga · 500 m analysis grid</strong><span id="mapStatus">Loading neighbourhood boundaries…</span></div></main>
+</div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
 (() => {
-  const center = [56.9496, 24.1052];
-  const CELL = 500;
-  const FACTORS = [
-    {id:"green", label:"Parks & green space", group:"Positive", weight:80, base:0.7},
-    {id:"transit", label:"Public transport", group:"Positive", weight:85, base:0.8},
-    {id:"schools", label:"Schools & healthcare", group:"Positive", weight:55, base:0.5},
-    {id:"shops", label:"Daily amenities", group:"Positive", weight:60, base:0.55},
-    {id:"noise", label:"Noise exposure", group:"Negative", weight:65, base:0.6},
-    {id:"roads", label:"Major roads", group:"Negative", weight:50, base:0.45}
+  const center=[56.9496,24.1052], CELL=500;
+  const FACTORS=[
+    {id:"green",label:"Parks & green space",group:"Positive",weight:80,real:true},
+    {id:"transit",label:"Public transport",group:"Positive",weight:85,real:true},
+    {id:"schools",label:"Schools & healthcare",group:"Positive",weight:55,real:true},
+    {id:"shops",label:"Daily amenities",group:"Positive",weight:60,real:true},
+    {id:"noise",label:"Noise exposure",group:"Negative",weight:45,real:false},
+    {id:"roads",label:"Major roads",group:"Negative",weight:45,real:false}
   ];
-  const defaults = Object.fromEntries(FACTORS.map(f => [f.id, {enabled:true, weight:f.weight}]));
-  let settings = JSON.parse(JSON.stringify(defaults));
-  let cells = [];
-  let selected = null;
-  const map = L.map("map", {zoomControl:true}).setView(center, 12);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(map);
-  const gridLayer = L.layerGroup().addTo(map);
-  const neighborhoodLayer = L.layerGroup().addTo(map);
-  let neighborhoodFeatures = [];
-  let boundariesReady = false;
-  const factorRoot = document.getElementById("factors");
-  const $ = id => document.getElementById(id);
+  const settings=Object.fromEntries(FACTORS.map(f=>[f.id,{enabled:true,weight:f.weight}]));
+  const $=id=>document.getElementById(id);
+  const map=L.map("map").setView(center,12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+  const gridLayer=L.layerGroup().addTo(map), boundaryLayer=L.layerGroup().addTo(map);
+  let neighborhoodFeatures=[],boundariesReady=false,cells=[],selectedCell=null;
+  const CACHE_KEY="riga-comfort-osm-v2",CACHE_AGE=6*60*60*1000;
+  let osmFeatures=[],osmLoaded=false,osmSource="not loaded";
 
-  function renderFactors() {
-    factorRoot.innerHTML = "";
-    FACTORS.forEach(f => {
-      const row = document.createElement("div");
-      row.className = "factor";
-      row.innerHTML = `<div class="factor-top"><label><input type="checkbox" data-enabled="${f.id}" ${settings[f.id].enabled?"checked":""}> ${f.label}</label><output id="out-${f.id}">${settings[f.id].weight}%</output></div><input type="range" min="0" max="100" step="5" value="${settings[f.id].weight}" data-weight="${f.id}" aria-label="${f.label} importance">`;
-      factorRoot.appendChild(row);
+  function renderFactors(){
+    const root=$("factors");root.innerHTML="";
+    FACTORS.forEach(f=>{
+      const row=document.createElement("div");row.className="factor";
+      row.innerHTML=`<div class="factor-top"><label><input type="checkbox" data-enabled="${f.id}" checked> ${f.label}</label><output id="out-${f.id}">${f.weight}%</output></div><input type="range" min="0" max="100" step="5" value="${f.weight}" data-weight="${f.id}" aria-label="${f.label} importance"><div class="factor-help">${f.real?"OpenStreetMap proximity when data loads":"Illustrative estimate — real data not yet integrated"}</div>`;
+      root.appendChild(row);
     });
-    factorRoot.querySelectorAll("[data-enabled]").forEach(el => el.addEventListener("change", () => {
-      settings[el.dataset.enabled].enabled = el.checked; updateGrid();
-    }));
-    factorRoot.querySelectorAll("[data-weight]").forEach(el => el.addEventListener("input", () => {
-      settings[el.dataset.weight].weight = Number(el.value);
-      $("out-"+el.dataset.weight).textContent = el.value + "%";
-      updateGrid();
-    }));
+    root.querySelectorAll("[data-enabled]").forEach(el=>el.addEventListener("change",()=>{settings[el.dataset.enabled].enabled=el.checked;updateGrid();}));
+    root.querySelectorAll("[data-weight]").forEach(el=>el.addEventListener("input",()=>{settings[el.dataset.weight].weight=+el.value;$("out-"+el.dataset.weight).textContent=el.value+"%";updateGrid();}));
   }
-  function project(lat, lon) {
-    const x = lon * 20037508.34 / 180;
-    const y = Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180) * 20037508.34 / 180;
-    return [x,y];
-  }
-  function unproject(x,y) {
-    const lon = x / 20037508.34 * 180;
-    let lat = y / 20037508.34 * 180;
-    lat = 180/Math.PI*(2*Math.atan(Math.exp(lat*Math.PI/180))-Math.PI/2);
-    return [lat,lon];
-  }
-  const cxy = project(center[0],center[1]);
-
-  // GeoJSON uses [longitude, latitude]. This ray-casting helper supports
-  // Polygon and MultiPolygon geometries, including interior rings (holes).
-  function pointInRing(lon, lat, ring) {
-    let inside = false;
-    for (let i=0, j=ring.length-1; i<ring.length; j=i++) {
-      const xi=ring[i][0], yi=ring[i][1], xj=ring[j][0], yj=ring[j][1];
-      const crosses = ((yi > lat) !== (yj > lat)) &&
-        (lon < (xj-xi) * (lat-yi) / ((yj-yi) || 1e-15) + xi);
-      if (crosses) inside = !inside;
-    }
-    return inside;
-  }
-  function pointInPolygon(lon, lat, rings) {
-    if (!rings.length || !pointInRing(lon,lat,rings[0])) return false;
-    for (let i=1; i<rings.length; i++) if (pointInRing(lon,lat,rings[i])) return false;
-    return true;
-  }
-  function pointInGeometry(lon, lat, geometry) {
-    if (!geometry) return false;
-    if (geometry.type === "Polygon") return pointInPolygon(lon,lat,geometry.coordinates);
-    if (geometry.type === "MultiPolygon") return geometry.coordinates.some(poly=>pointInPolygon(lon,lat,poly));
+  function project(lat,lon){return [lon*20037508.34/180,Math.log(Math.tan((90+lat)*Math.PI/360))/(Math.PI/180)*20037508.34/180];}
+  function unproject(x,y){const lon=x/20037508.34*180;let lat=y/20037508.34*180;lat=180/Math.PI*(2*Math.atan(Math.exp(lat*Math.PI/180))-Math.PI/2);return [lat,lon];}
+  const cxy=project(center[0],center[1]);
+  function pointInRing(lon,lat,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];const cross=((yi>lat)!==(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi+1e-15)+xi);if(cross)inside=!inside;}return inside;}
+  function pointInGeometry(lon,lat,g){
+    if(!g)return false;
+    if(g.type==="Polygon")return g.coordinates.some((ring,i)=>i===0?pointInRing(lon,lat,ring):!pointInRing(lon,lat,ring));
+    if(g.type==="MultiPolygon")return g.coordinates.some(poly=>poly.some((ring,i)=>i===0?pointInRing(lon,lat,ring):!pointInRing(lon,lat,ring)));
     return false;
   }
-  function pointInRigaNeighborhoods(lon, lat) {
-    return neighborhoodFeatures.some(feature=>pointInGeometry(lon,lat,feature.geometry));
+  function inRiga(lon,lat){return neighborhoodFeatures.some(f=>pointInGeometry(lon,lat,f.geometry));}
+  function hash(a,b,s){let n=Math.sin(a*12.9898+b*78.233+s*37.719)*43758.5453;return n-Math.floor(n);}
+  function categories(tags){
+    const c=[];
+    if(/^(park|garden|nature_reserve|recreation_ground|village_green)$/.test(tags.leisure||"")||tags.landuse==="forest"||/^(wood|forest|grassland)$/.test(tags.natural||""))c.push("green");
+    if(tags.highway==="bus_stop"||/^(platform|stop_position|station)$/.test(tags.public_transport||"")||/^(tram_stop|station|halt|subway_entrance|tram)$/.test(tags.railway||"")||tags.amenity==="bus_station")c.push("transit");
+    if(/^(school|kindergarten|college|university|hospital|clinic|doctors|dentist)$/.test(tags.amenity||"")||tags.healthcare||/^(school|kindergarten|university|hospital|clinic)$/.test(tags.building||""))c.push("schools");
+    if(/^(supermarket|convenience|pharmacy)$/.test(tags.shop||"")||tags.amenity==="pharmacy")c.push("shops");
+    return c;
   }
-  function hash(a,b,k=0) {
-    const v = Math.sin(a*12.9898 + b*78.233 + k*37.719) * 43758.5453;
-    return v - Math.floor(v);
+  function normalize(elements){
+    const seen=new Set(),out=[];
+    for(const item of elements){const tags=item.tags||{},lat=item.lat??item.center?.lat,lon=item.lon??item.center?.lon;if(!Number.isFinite(lat)||!Number.isFinite(lon))continue;const cats=categories(tags),key=item.type+"/"+item.id;if(!cats.length||seen.has(key))continue;seen.add(key);out.push({lat,lon,categories:cats,name:tags.name||""});}
+    return out;
   }
-  function syntheticSignals(x,y) {
-    const ll = unproject(x, y);
-    const dx=(x-cxy[0])/1000, dy=(y-cxy[1])/1000;
-    const centerProximity=Math.max(0,1-Math.sqrt(dx*dx+dy*dy)/12);
+  async function requestOverpass(query,endpoint){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),50000);
+    try{const res=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:"data="+encodeURIComponent(query),signal:controller.signal});if(!res.ok)throw Error("HTTP "+res.status);const data=await res.json();if(!Array.isArray(data.elements))throw Error("Unexpected data response");return data.elements;}
+    finally{clearTimeout(timer);}
+  }
+  async function loadOsmData(){
+    let cache=null;try{cache=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");}catch(_){}
+    if(cache&&cache.savedAt&&Date.now()-cache.savedAt<CACHE_AGE&&Array.isArray(cache.features)&&cache.features.length){
+      osmFeatures=cache.features;osmLoaded=true;osmSource="cached OpenStreetMap data";$("dataCount").textContent=osmFeatures.length.toLocaleString();$("dataNote").textContent="Using cached OpenStreetMap features (refreshed within six hours).";generateGrid();return;
+    }
+    const bbox="(56.85,23.95,57.10,24.35)";
+    const query=`[out:json][timeout:45];(
+      nwr["leisure"~"^(park|garden|nature_reserve|recreation_ground|village_green)$"]${bbox};
+      nwr["landuse"="forest"]${bbox};
+      nwr["natural"~"^(wood|forest|grassland)$"]${bbox};
+      nwr["highway"="bus_stop"]${bbox};
+      nwr["public_transport"~"^(platform|stop_position|station)$"]${bbox};
+      nwr["railway"~"^(tram_stop|station|halt|subway_entrance|tram)$"]${bbox};
+      nwr["amenity"~"^(bus_station|school|kindergarten|college|university|hospital|clinic|doctors|dentist|pharmacy)$"]${bbox};
+      nwr["healthcare"]${bbox};
+      nwr["building"~"^(school|kindergarten|university|hospital|clinic)$"]${bbox};
+      nwr["shop"~"^(supermarket|convenience|pharmacy)$"]${bbox};
+    );out center tags;`;
+    let error=null;
+    for(const endpoint of ["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"]){
+      try{
+        const features=normalize(await requestOverpass(query,endpoint));if(!features.length)throw Error("No mapped features returned");
+        osmFeatures=features;osmLoaded=true;osmSource="live OpenStreetMap data";
+        try{localStorage.setItem(CACHE_KEY,JSON.stringify({savedAt:Date.now(),features}));}catch(_){}
+        $("dataCount").textContent=features.length.toLocaleString();$("dataNote").textContent="Live OpenStreetMap data loaded successfully. Four positive factors use proximity estimates; noise and major-road factors remain illustrative.";
+        generateGrid();return;
+      }catch(e){error=e;console.warn("OpenStreetMap endpoint failed",endpoint,e);}
+    }
+    if(cache&&Array.isArray(cache.features)&&cache.features.length){
+      osmFeatures=cache.features;osmLoaded=true;osmSource="older cached OpenStreetMap data";$("dataCount").textContent=cache.features.length.toLocaleString();$("dataNote").textContent="Live refresh failed; using older cached OpenStreetMap data.";
+    }else{
+      osmLoaded=false;$("dataCount").textContent="Unavailable";$("dataNote").textContent="Could not load live OpenStreetMap data. Four factors will temporarily use illustrative estimates. Check the browser console for details.";console.warn("OpenStreetMap unavailable",error);
+    }
+    generateGrid();
+  }
+  function proximitySignal(category,lat,lon,radiusKm){
+    if(!osmLoaded)return null;let nearest=Infinity;
+    for(const f of osmFeatures){if(!f.categories.includes(category))continue;const dy=(f.lat-lat)*111,dx=(f.lon-lon)*111*Math.cos(lat*Math.PI/180);nearest=Math.min(nearest,Math.sqrt(dx*dx+dy*dy));}
+    return Number.isFinite(nearest)?Math.max(0,Math.min(1,1-nearest/radiusKm)):null;
+  }
+  function signals(x,y){
+    const ll=unproject(x,y),dx=(x-cxy[0])/1000,dy=(y-cxy[1])/1000,centerProximity=Math.max(0,1-Math.sqrt(dx*dx+dy*dy)/12),a=Math.round(x/CELL),b=Math.round(y/CELL);
     return {
-      green: greenSpaceSignal(ll[0], ll[1]) ?? (0.2 + 0.65*hash(Math.round(x/CELL),Math.round(y/CELL),1)),
-      transit: 0.25 + 0.55*hash(Math.round(x/CELL),Math.round(y/CELL),2) + centerProximity*0.15,
-      schools: 0.2 + 0.6*hash(Math.round(x/CELL),Math.round(y/CELL),3),
-      shops: 0.2 + 0.65*hash(Math.round(x/CELL),Math.round(y/CELL),4) + centerProximity*0.1,
-      noise: 0.2 + 0.6*hash(Math.round(x/CELL),Math.round(y/CELL),5) + centerProximity*0.08,
-      roads: 0.2 + 0.6*hash(Math.round(x/CELL),Math.round(y/CELL),6)
+      green:proximitySignal("green",ll[0],ll[1],1.5)??(.2+.65*hash(a,b,1)),
+      transit:proximitySignal("transit",ll[0],ll[1],.7)??(.25+.55*hash(a,b,2)+centerProximity*.15),
+      schools:proximitySignal("schools",ll[0],ll[1],1.5)??(.2+.6*hash(a,b,3)),
+      shops:proximitySignal("shops",ll[0],ll[1],.9)??(.2+.65*hash(a,b,4)+centerProximity*.1),
+      noise:.2+.6*hash(a,b,5)+centerProximity*.08,
+      roads:.2+.6*hash(a,b,6)
     };
   }
-  // Real green-space data loaded from OpenStreetMap.
-  let greenSpaces = [];
-  let greenSpacesLoaded = false;
-
-  async function loadGreenSpaces() {
-    const query = `
-      [out:json][timeout:25];
-      (
-        way["leisure"~"^(park|garden|nature_reserve)$"](56.85,23.95,57.10,24.35);
-        relation["leisure"~"^(park|garden|nature_reserve)$"](56.85,23.95,57.10,24.35);
-        way["landuse"="forest"](56.85,23.95,57.10,24.35);
-        way["natural"="wood"](56.85,23.95,57.10,24.35);
-      );
-      out center tags;
-    `;
-
-    try {
-      const response = await fetch(
-        "https://overpass-api.de/api/interpreter",
-        {
-          method: "POST",
-          body: "data=" + encodeURIComponent(query)
-        }
-      );
-
-      if (!response.ok) throw new Error("Green-space data unavailable");
-
-      const data = await response.json();
-
-      greenSpaces = data.elements
-        .filter(item => item.center)
-        .map(item => ({
-          lat: item.center.lat,
-          lon: item.center.lon
-        }));
-
-      greenSpacesLoaded = true;
-      generateGrid();
-      $("mapStatus").textContent =
-        `Loaded ${greenSpaces.length} mapped green spaces.`;
-    } catch (error) {
-      console.error(error);
-      $("mapStatus").textContent =
-        "Green-space data unavailable; demo scores remain in use.";
-    }
+  function calculate(cell){
+    let sum=0,total=0;const breakdown=[];
+    FACTORS.forEach(f=>{if(!settings[f.id].enabled||settings[f.id].weight===0)return;const value=cell.signals[f.id],signed=f.group==="Positive"?value:(1-value);sum+=signed*settings[f.id].weight;total+=settings[f.id].weight;breakdown.push({label:f.label,group:f.group,signal:value,weight:settings[f.id].weight,real:f.real});});
+    return {score:total?Math.round(100*sum/total):0,breakdown};
   }
-
-  function greenSpaceSignal(lat, lon) {
-    if (!greenSpacesLoaded || greenSpaces.length === 0) return null;
-
-    let nearestKm = Infinity;
-
-    for (const space of greenSpaces) {
-      const dy = (space.lat - lat) * 111;
-      const dx = (space.lon - lon) * 111 *
-        Math.cos(lat * Math.PI / 180);
-
-      nearestKm = Math.min(
-        nearestKm,
-        Math.sqrt(dx * dx + dy * dy)
-      );
-    }
-
-    return Math.max(0, Math.min(1, 1 - nearestKm / 1.5));
+  function color(score){if(score<25)return "#b85e45";if(score<42)return "#d68b61";if(score<58)return "#e8c978";if(score<76)return "#a8cba0";return "#43866a";}
+  function renderBoundaries(){
+    boundaryLayer.clearLayers();
+    neighborhoodFeatures.forEach(f=>{const layer=L.geoJSON(f,{style:{color:"#647c70",weight:1,opacity:.8,fillOpacity:.02}});const name=f.properties?.name||f.properties?.NAME||f.properties?.name_en||"Riga neighbourhood";layer.bindTooltip(name,{sticky:true});layer.addTo(boundaryLayer);});
   }
-
-  function calculate(cell) {
-    let pos=0, neg=0, pw=0, nw=0;
-    const breakdown = [];
-    FACTORS.forEach(f => {
-      if (!settings[f.id].enabled || settings[f.id].weight===0) return;
-      const v = cell.signals[f.id];
-      const contribution = (v-0.5) * (settings[f.id].weight/100) * 34;
-      if (f.group==="Positive") { pos += contribution; pw += settings[f.id].weight; }
-      else { neg += contribution; nw += settings[f.id].weight; }
-      breakdown.push({label:f.label, group:f.group, signal:v, contribution});
-    });
-    // Illustrative base varies by location; the factor controls change it predictably.
-    const raw = 57 + (cell.signals.green-0.5)*18 + (cell.signals.transit-0.5)*12 + (cell.signals.shops-0.5)*8 - (cell.signals.noise-0.5)*12 - (cell.signals.roads-0.5)*8 + pos*0.45 + neg*0.45;
-    return {score:Math.max(0,Math.min(100,Math.round(raw))), breakdown, pos:breakdown.filter(x=>x.group==="Positive"&&x.signal>0.55).length, neg:breakdown.filter(x=>x.group==="Negative"&&x.signal>0.55).length};
-  }
-  function color(score) {
-    if(score<25) return "#b85e45";
-    if(score<42) return "#d68b61";
-    if(score<58) return "#e8c978";
-    if(score<76) return "#a8cba0";
-    return "#43866a";
-  }
-  function generateGrid() {
-    if (!boundariesReady) {
-      gridLayer.clearLayers(); cells=[];
-      $("mapStatus").textContent="Loading Riga neighbourhood boundaries…";
-      return;
-    }
-    if (map.getZoom() < 11) {
-      gridLayer.clearLayers(); cells=[];
-      $("mapStatus").textContent="Zoom in to inspect the 500 m grid.";
-      return;
-    }
-    gridLayer.clearLayers(); cells=[];
-    const b=map.getBounds();
-    const sw=project(b.getSouth(),b.getWest()), ne=project(b.getNorth(),b.getEast());
-    const x0=Math.floor(sw[0]/CELL)*CELL, x1=Math.ceil(ne[0]/CELL)*CELL;
-    const y0=Math.floor(sw[1]/CELL)*CELL, y1=Math.ceil(ne[1]/CELL)*CELL;
-    // Limit number of polygons at low zoom for responsive rendering.
-    const step = (x1-x0)*(y1-y0)/(CELL*CELL)>1300 ? CELL*2 : CELL;
-    for(let x=x0; x<x1; x+=step) {
-      for(let y=y0; y<y1; y+=step) {
-        const centerXY=[x+step/2,y+step/2];
-        const ll=unproject(centerXY[0],centerXY[1]);
-        // Keep only cell centres that fall inside an official neighbourhood polygon.
-        // The 500 m rectangles are not geometrically clipped to polygon edges.
-        if (!pointInRigaNeighborhoods(ll[1],ll[0])) continue;
-        const swll=unproject(x,y), sell=unproject(x+step,y+step);
-        const cell={id:`${Math.round(x)}:${Math.round(y)}`, x,y,step,lat:ll[0],lon:ll[1],bounds:[[swll[0],swll[1]],[sell[0],sell[1]]],signals:syntheticSignals(centerXY[0],centerXY[1])};
+  function generateGrid(){
+    if(!boundariesReady){$("mapStatus").textContent="Loading Riga neighbourhood boundaries…";return;}
+    if(map.getZoom()<11){gridLayer.clearLayers();cells=[];$("mapStatus").textContent="Zoom in to inspect the 500 m grid.";return;}
+    gridLayer.clearLayers();cells=[];
+    const bounds=map.getBounds(),sw=project(bounds.getSouth(),bounds.getWest()),ne=project(bounds.getNorth(),bounds.getEast());
+    const x0=Math.floor(sw[0]/CELL)*CELL,x1=Math.ceil(ne[0]/CELL)*CELL,y0=Math.floor(sw[1]/CELL)*CELL,y1=Math.ceil(ne[1]/CELL)*CELL;
+    const step=((x1-x0)*(y1-y0)/(CELL*CELL)>1300)?CELL*2:CELL;
+    for(let x=x0;x<x1;x+=step){
+      for(let y=y0;y<y1;y+=step){
+        const cx=x+step/2,cy=y+step/2,ll=unproject(cx,cy);
+        if(!inRiga(ll[1],ll[0]))continue;
+        const swll=unproject(x,y),sell=unproject(x+step,y+step);
+        const cell={id:`${Math.round(x)}:${Math.round(y)}`,lat:ll[0],lon:ll[1],bounds:[[swll[0],swll[1]],[sell[0],sell[1]]],signals:signals(cx,cy)};
         cell.result=calculate(cell);
-        const rect=L.rectangle(cell.bounds,{color:"#ffffff",weight:0.7,opacity:0.8,fillColor:color(cell.result.score),fillOpacity:0.53});
+        const rect=L.rectangle(cell.bounds,{color:"#fff",weight:.7,opacity:.85,fillColor:color(cell.result.score),fillOpacity:.52});
         rect.on("click",()=>selectCell(cell,rect));
-        rect.bindTooltip(`Illustrative score: ${cell.result.score}`,{sticky:true,direction:"top",opacity:.9});
-        cell.layer=rect; gridLayer.addLayer(rect); cells.push(cell);
+        rect.bindTooltip(`Estimated comfort score: ${cell.result.score}`,{sticky:true,direction:"top",opacity:.9});
+        rect.addTo(gridLayer);cells.push(cell);
       }
     }
-    if(selected) {
-      const next=cells.find(c=>c.id===selected.id);
-      if(next) selectCell(next);
-      else { selected=null; $("score").textContent="—"; $("scoreCaption").textContent="Select a cell on the map"; }
-    }
-    $("mapStatus").textContent=`${cells.length.toLocaleString()} illustrative grid cells inside Riga neighbourhoods. Select a cell for details.`;
+    $("mapStatus").textContent=`${cells.length.toLocaleString()} grid cells in Riga neighbourhoods. ${osmLoaded?"OpenStreetMap proximity data is active; noise and major-road factors remain illustrative.":"Using illustrative estimates until live OpenStreetMap data loads."} Select a cell for details.`;
+    if(selectedCell) $("overallScore").textContent=selectedCell.result.score;
   }
-  function selectCell(cell, layer) {
-    selected=cell; cell.result=calculate(cell);
-    cells.forEach(c=>{ if(c.layer) c.layer.setStyle({weight:0.7,color:"#ffffff",fillOpacity:0.53}); });
-    if(layer) layer.setStyle({weight:2.5,color:"#183e30",fillOpacity:0.82});
-    else if(cell.layer) cell.layer.setStyle({weight:2.5,color:"#183e30",fillOpacity:0.82});
-    $("score").textContent=cell.result.score;
-    $("scoreMeter").style.width=cell.result.score+"%";
-    $("scoreCaption").textContent=`${cell.lat.toFixed(4)}, ${cell.lon.toFixed(4)}`;
-    $("scoreLabel").textContent=cell.result.score>=70?"Higher (demo)":cell.result.score>=48?"Middle (demo)":"Lower (demo)";
-    $("posCount").textContent=cell.result.pos;
-    $("negCount").textContent=cell.result.neg;
-    if(layer) layer.bindPopup(`<div class="popup-score">${cell.result.score}<span style="font-size:12px;color:#6b7770"> / 100</span></div><div class="popup-note">Illustrative prototype score — not calculated from verified local data.</div>`).openPopup();
+  function selectCell(cell,layer){
+    selectedCell=cell;$("overallScore").textContent=cell.result.score;
+    const details=cell.result.breakdown.map(item=>`<div><strong>${item.label}:</strong> ${item.real&&osmLoaded?"OSM estimate":"illustrative"} (${Math.round(item.signal*100)}/100)</div>`).join("");
+    const popup=`<div class="popup-score">${cell.result.score}<span style="font-size:12px;color:#6b7770"> / 100</span></div><div class="popup-note">Experimental comfort estimate. Facility proximity is not the same as service quality or completeness.</div><hr>${details}<p class="popup-note">Noise and major-road factors are currently illustrative.</p>`;
+    L.popup({maxWidth:300}).setLatLng([cell.lat,cell.lon]).setContent(popup).openOn(map);
   }
-  function updateGrid() {
-    cells.forEach(cell=>{
-      cell.result=calculate(cell);
-      if(cell.layer) cell.layer.setStyle({fillColor:color(cell.result.score)});
-    });
-    if(selected) {
-      selected.result=calculate(selected);
-      $("score").textContent=selected.result.score;
-      $("scoreMeter").style.width=selected.result.score+"%";
-      $("scoreLabel").textContent=selected.result.score>=70?"Higher (demo)":selected.result.score>=48?"Middle (demo)":"Lower (demo)";
-      $("posCount").textContent=selected.result.pos; $("negCount").textContent=selected.result.neg;
-    }
+  function updateGrid(){
+    generateGrid();
+    if(selectedCell){const p=project(selectedCell.lat,selectedCell.lon);selectedCell.signals=signals(p[0],p[1]);selectedCell.result=calculate(selectedCell);$("overallScore").textContent=selectedCell.result.score;}
   }
-  $("reset").addEventListener("click",()=>{settings=JSON.parse(JSON.stringify(defaults));renderFactors();updateGrid();});
-  $("searchForm").addEventListener("submit", async e=>{
-    e.preventDefault();
-    const q=$("address").value.trim();
-    if(!q) return;
-    $("mapStatus").textContent="Searching…";
-    try {
+  async function searchAddress(event){
+    event.preventDefault();const q=$("address").value.trim();if(!q)return;
+    $("mapStatus").textContent="Searching address…";
+    try{
       const url="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=lv&q="+encodeURIComponent(q+" Riga");
-      const res=await fetch(url,{headers:{"Accept":"application/json"}});
-      if(!res.ok) throw new Error("Search service unavailable");
-      const data=await res.json();
-      if(!data.length) { $("mapStatus").textContent="No result found. Try a street name or a more specific address."; return; }
-      const lat=Number(data[0].lat), lon=Number(data[0].lon);
-      map.setView([lat,lon],15);
-      $("mapStatus").textContent="Search result: "+data[0].display_name;
-    } catch(err) {
-      $("mapStatus").textContent="Address search failed. Check your connection or try again later.";
-    }
-  });
-  let timer;
-  map.on("moveend",()=>{clearTimeout(timer);timer=setTimeout(generateGrid,100);});
+      const response=await fetch(url,{headers:{"Accept":"application/json"}});
+      if(!response.ok)throw Error("Search service unavailable");
+      const results=await response.json();
+      if(!results.length){$("mapStatus").textContent="No result found. Try a more specific Riga address.";return;}
+      const item=results[0],lat=Number(item.lat),lon=Number(item.lon);
+      map.setView([lat,lon],15);L.marker([lat,lon]).addTo(map).bindPopup(item.display_name).openPopup();
+      $("mapStatus").textContent="Search result: "+item.display_name;
+    }catch(e){$("mapStatus").textContent="Address search failed. Try again later.";console.warn(e);}
+  }
   renderFactors();
-  loadGreenSpaces();
-  fetch("./riga_neighborhoods.geojson")
-    .then(res=>{ if(!res.ok) throw new Error("Neighbourhood GeoJSON could not be loaded"); return res.json(); })
-    .then(data=>{
-      neighborhoodFeatures = Array.isArray(data.features) ? data.features : [];
-      if (!neighborhoodFeatures.length) throw new Error("No neighbourhood features were found");
-      const boundaryGeoJSON = L.geoJSON(data, {
-        style: {color:"#294f40", weight:1.4, opacity:0.9, fillColor:"#8fb6a0", fillOpacity:0.035},
-        onEachFeature: (feature, layer) => {
-          const name = feature.properties && (feature.properties.apkaime || feature.properties.name || feature.properties.Nosaukums);
-          if (name) layer.bindTooltip(String(name), {sticky:true, direction:"top"});
-        }
-      });
-      neighborhoodLayer.addLayer(boundaryGeoJSON);
-      boundariesReady = true;
-      map.fitBounds(boundaryGeoJSON.getBounds(), {padding:[12,12]});
-      generateGrid();
-    })
-    .catch(err=>{
-      console.error(err);
-      $("mapStatus").textContent="Could not load neighbourhood boundaries. Check that riga_neighborhoods.geojson is in the repository root.";
-    });
+  $("searchForm").addEventListener("submit",searchAddress);
+  map.on("moveend",()=>{clearTimeout(window.__rciGridTimer);window.__rciGridTimer=setTimeout(generateGrid,120);});
+  fetch("./riga_neighborhoods.geojson").then(r=>{if(!r.ok)throw Error("Neighbourhood file not found");return r.json();}).then(data=>{
+    neighborhoodFeatures=data.features||[];boundariesReady=true;renderBoundaries();generateGrid();
+  }).catch(error=>{$("mapStatus").textContent="Could not load neighbourhood boundaries. Ensure riga_neighborhoods.geojson is in the repository root.";console.error(error);});
+  loadOsmData();
 })();
 </script>
 </body>
