@@ -21,14 +21,14 @@
 <div class="app">
 <header>
   <div class="brand"><div class="mark">R</div><div><h1>Riga Comfort Index</h1><div class="subtitle">A neighbourhood-level view of everyday comfort</div></div></div>
-  <div class="header-right"><div class="status">Live OSM + illustrative factors</div><form class="search" id="searchForm"><input id="address" type="search" aria-label="Search for an address" placeholder="Search a Riga address or place…"><button type="submit">Search</button></form></div>
+  <div class="header-right"><div class="status">Prepared OSM data + illustrative factors</div><form class="search" id="searchForm"><input id="address" type="search" aria-label="Search for an address" placeholder="Search a Riga address or place…"><button type="submit">Search</button></form></div>
 </header>
 <div class="layout">
 <aside class="sidebar">
-  <div class="intro"><div class="eyebrow">City comfort, made legible</div><h2>Where does Riga feel best to live?</h2><p>Explore a 500 m grid across Riga neighbourhoods. Four factors use nearby OpenStreetMap features when available; noise and major-road exposure remain illustrative for now.</p></div>
+  <div class="intro"><div class="eyebrow">City comfort, made legible</div><h2>Where does Riga feel best to live?</h2><p>Explore a 500 m grid across Riga neighbourhoods. Four factors use a prepared OpenStreetMap snapshot; noise and major-road exposure remain illustrative for now.</p></div>
   <div class="card"><h3>Comfort score</h3><div class="metric"><div><strong id="overallScore">—</strong><span>Selected cell / 100</span></div><div><strong id="dataCount">Loading</strong><span>Mapped OSM features</span></div></div><div class="legend"><span style="background:#b85e45"></span><span style="background:#d68b61"></span><span style="background:#e8c978"></span><span style="background:#a8cba0"></span><span style="background:#43866a"></span></div><p class="small">Scores are experimental proximity estimates, not a scientific or official ranking. Missing map data does not mean a facility is absent.</p></div>
   <div class="card"><h3>Choose what matters</h3><div id="factors"></div></div>
-  <div class="card"><h3>Data notes</h3><p class="small" id="dataNote">Loading neighbourhood boundaries and public map data…</p><p class="small">Sources: OpenStreetMap contributors, public Overpass API, and the repository's Riga neighbourhood GeoJSON. Live requests can be slow or rate-limited. Data is cached in this browser for up to six hours.</p></div>
+  <div class="card"><h3>Data notes</h3><p class="small" id="dataNote">Loading neighbourhood boundaries and public map data…</p><p class="small">Sources: OpenStreetMap contributors and the repository's Riga neighbourhood GeoJSON. Comfort features are prepared ahead of time and stored with the site; a scheduled GitHub Action refreshes the snapshot weekly. Noise and major-road exposure remain illustrative.</p></div>
 </aside>
 <main class="map-wrap"><div id="map"></div><div class="map-chip"><strong>Riga · 500 m analysis grid</strong><span id="mapStatus">Loading neighbourhood boundaries…</span></div></main>
 </div>
@@ -89,45 +89,39 @@
     for(const item of elements){const tags=item.tags||{},lat=item.lat??item.center?.lat,lon=item.lon??item.center?.lon;if(!Number.isFinite(lat)||!Number.isFinite(lon))continue;const cats=categories(tags),key=item.type+"/"+item.id;if(!cats.length||seen.has(key))continue;seen.add(key);out.push({lat,lon,categories:cats,name:tags.name||""});}
     return out;
   }
-  async function requestOverpass(query,endpoint){
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),50000);
-    try{const res=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:"data="+encodeURIComponent(query),signal:controller.signal});if(!res.ok)throw Error("HTTP "+res.status);const data=await res.json();if(!Array.isArray(data.elements))throw Error("Unexpected data response");return data.elements;}
-    finally{clearTimeout(timer);}
-  }
-  async function loadOsmData(){
-    let cache=null;try{cache=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");}catch(_){}
-    if(cache&&cache.savedAt&&Date.now()-cache.savedAt<CACHE_AGE&&Array.isArray(cache.features)&&cache.features.length){
-      osmFeatures=cache.features;osmLoaded=true;osmSource="cached OpenStreetMap data";$("dataCount").textContent=osmFeatures.length.toLocaleString();$("dataNote").textContent="Using cached OpenStreetMap features (refreshed within six hours).";generateGrid();return;
+  async function loadPreparedData(){
+    let cache=null;
+    try{cache=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");}catch(_){}
+    try{
+      const response=await fetch("./data/comfort-features.geojson?refresh="+Date.now(),{cache:"no-store"});
+      if(!response.ok)throw Error("Prepared data file not found (HTTP "+response.status+")");
+      const dataset=await response.json();
+      if(!dataset||!Array.isArray(dataset.features))throw Error("Prepared data is not a GeoJSON FeatureCollection");
+      const features=dataset.features.map(feature=>{
+        const coordinates=feature.geometry&&feature.geometry.coordinates;
+        const properties=feature.properties||{};
+        if(!Array.isArray(coordinates)||coordinates.length<2||!Array.isArray(properties.categories))return null;
+        return {lon:Number(coordinates[0]),lat:Number(coordinates[1]),categories:properties.categories,name:properties.name||""};
+      }).filter(f=>Number.isFinite(f.lat)&&Number.isFinite(f.lon)&&f.categories.length);
+      if(!features.length)throw Error("Prepared dataset contains no usable features");
+      osmFeatures=features;osmLoaded=true;osmSource="prepared OpenStreetMap snapshot";
+      try{localStorage.setItem(CACHE_KEY,JSON.stringify({savedAt:Date.now(),features}));}catch(_){}
+      $("dataCount").textContent=features.length.toLocaleString();
+      const generated=dataset.properties&&dataset.properties.generated_at?new Date(dataset.properties.generated_at).toLocaleDateString():"date unavailable";
+      $("dataNote").textContent="Prepared OpenStreetMap snapshot loaded (updated "+generated+"). The website does not query Overpass on page load. Four positive factors use proximity estimates; noise and major-road factors remain illustrative.";
+      generateGrid();return;
+    }catch(error){
+      console.warn("Could not load prepared comfort data:",error);
+      if(cache&&Array.isArray(cache.features)&&cache.features.length){
+        osmFeatures=cache.features;osmLoaded=true;osmSource="browser-cached OpenStreetMap snapshot";
+        $("dataCount").textContent=osmFeatures.length.toLocaleString();
+        $("dataNote").textContent="Prepared dataset could not be loaded; using a previously cached snapshot. The website itself makes no live Overpass request.";
+      }else{
+        osmLoaded=false;$("dataCount").textContent="Unavailable";
+        $("dataNote").textContent="The prepared dataset has not been generated yet or could not be loaded. The map will temporarily use illustrative values for the four facility factors. Check that data/comfort-features.geojson exists in the repository.";
+      }
+      generateGrid();
     }
-    const bbox="(56.85,23.95,57.10,24.35)";
-    const query=`[out:json][timeout:45];(
-      nwr["leisure"~"^(park|garden|nature_reserve|recreation_ground|village_green)$"]${bbox};
-      nwr["landuse"="forest"]${bbox};
-      nwr["natural"~"^(wood|forest|grassland)$"]${bbox};
-      nwr["highway"="bus_stop"]${bbox};
-      nwr["public_transport"~"^(platform|stop_position|station)$"]${bbox};
-      nwr["railway"~"^(tram_stop|station|halt|subway_entrance|tram)$"]${bbox};
-      nwr["amenity"~"^(bus_station|school|kindergarten|college|university|hospital|clinic|doctors|dentist|pharmacy)$"]${bbox};
-      nwr["healthcare"]${bbox};
-      nwr["building"~"^(school|kindergarten|university|hospital|clinic)$"]${bbox};
-      nwr["shop"~"^(supermarket|convenience|pharmacy)$"]${bbox};
-    );out center tags;`;
-    let error=null;
-    for(const endpoint of ["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"]){
-      try{
-        const features=normalize(await requestOverpass(query,endpoint));if(!features.length)throw Error("No mapped features returned");
-        osmFeatures=features;osmLoaded=true;osmSource="live OpenStreetMap data";
-        try{localStorage.setItem(CACHE_KEY,JSON.stringify({savedAt:Date.now(),features}));}catch(_){}
-        $("dataCount").textContent=features.length.toLocaleString();$("dataNote").textContent="Live OpenStreetMap data loaded successfully. Four positive factors use proximity estimates; noise and major-road factors remain illustrative.";
-        generateGrid();return;
-      }catch(e){error=e;console.warn("OpenStreetMap endpoint failed",endpoint,e);}
-    }
-    if(cache&&Array.isArray(cache.features)&&cache.features.length){
-      osmFeatures=cache.features;osmLoaded=true;osmSource="older cached OpenStreetMap data";$("dataCount").textContent=cache.features.length.toLocaleString();$("dataNote").textContent="Live refresh failed; using older cached OpenStreetMap data.";
-    }else{
-      osmLoaded=false;$("dataCount").textContent="Unavailable";$("dataNote").textContent="Could not load live OpenStreetMap data. Four factors will temporarily use illustrative estimates. Check the browser console for details.";console.warn("OpenStreetMap unavailable",error);
-    }
-    generateGrid();
   }
   function proximitySignal(category,lat,lon,radiusKm){
     if(!osmLoaded)return null;let nearest=Infinity;
@@ -175,7 +169,7 @@
         rect.addTo(gridLayer);cells.push(cell);
       }
     }
-    $("mapStatus").textContent=`${cells.length.toLocaleString()} grid cells in Riga neighbourhoods. ${osmLoaded?"OpenStreetMap proximity data is active; noise and major-road factors remain illustrative.":"Using illustrative estimates until live OpenStreetMap data loads."} Select a cell for details.`;
+    $("mapStatus").textContent=`${cells.length.toLocaleString()} grid cells in Riga neighbourhoods. ${osmLoaded?"OpenStreetMap proximity data is active; noise and major-road factors remain illustrative.":"Using illustrative estimates until the prepared OpenStreetMap dataset is available."} Select a cell for details.`;
     if(selectedCell) $("overallScore").textContent=selectedCell.result.score;
   }
   function selectCell(cell,layer){
@@ -208,7 +202,7 @@
   fetch("./riga_neighborhoods.geojson").then(r=>{if(!r.ok)throw Error("Neighbourhood file not found");return r.json();}).then(data=>{
     neighborhoodFeatures=data.features||[];boundariesReady=true;renderBoundaries();generateGrid();
   }).catch(error=>{$("mapStatus").textContent="Could not load neighbourhood boundaries. Ensure riga_neighborhoods.geojson is in the repository root.";console.error(error);});
-  loadOsmData();
+  loadPreparedData();
 })();
 </script>
 </body>
