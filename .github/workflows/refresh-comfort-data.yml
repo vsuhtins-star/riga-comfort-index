@@ -31,12 +31,12 @@ jobs:
 
       - name: Commit updated dataset when it changed
         run: |
-          if git diff --quiet -- data/comfort-features.geojson; then
-            echo "Prepared dataset is unchanged; nothing to commit."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/comfort-features.geojson
-          git commit -m "Refresh prepared OpenStreetMap comfort data"
-          git push
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Update prepared comfort dataset"
+            git push
+          else
+            echo "Prepared dataset is unchanged; nothing to commit."
+          fi
