@@ -1,0 +1,42 @@
+name: Refresh prepared comfort dataset
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly on Sunday at 04:30 UTC.
+    - cron: "30 4 * * 0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-comfort-dataset
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build static OpenStreetMap snapshot
+        run: python scripts/build_comfort_data.py
+
+      - name: Commit updated dataset when it changed
+        run: |
+          if git diff --quiet -- data/comfort-features.geojson; then
+            echo "Prepared dataset is unchanged; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/comfort-features.geojson
+          git commit -m "Refresh prepared OpenStreetMap comfort data"
+          git push
