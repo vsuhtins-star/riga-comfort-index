@@ -29,7 +29,7 @@ QUERY = f"""
 (
   nwr["leisure"~"^(park|garden|nature_reserve|recreation_ground|village_green)$"]{BBOX};
   nwr["landuse"="forest"]{BBOX};
-  nwr["natural"~"^(wood|forest|grassland)$"]{BBOX};
+  nwr["natural"~"^(wood|forest|grassland|beach|dune|scrub|heath)$"]{BBOX}; nwr["leisure"="beach_resort"]{BBOX};
 
   nwr["highway"="bus_stop"]{BBOX};
   nwr["public_transport"~"^(platform|stop_position|station)$"]{BBOX};
@@ -55,7 +55,7 @@ def categories(tags: dict) -> list[str]:
     if (
         tags.get("leisure") in {"park", "garden", "nature_reserve", "recreation_ground", "village_green"}
         or tags.get("landuse") == "forest"
-        or tags.get("natural") in {"wood", "forest", "grassland"}
+        or tags.get("natural") in {     "wood", "forest", "grassland", "beach", "dune", "scrub", "heath" } or tags.get("leisure") == "beach_resort"
     ):
         result.append("green")
 
