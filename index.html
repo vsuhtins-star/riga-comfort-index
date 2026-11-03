@@ -359,20 +359,148 @@ function selectCell(cell,layer){
     generateGrid();
     if(selectedCell){const p=project(selectedCell.lat,selectedCell.lon);selectedCell.signals=signals(p[0],p[1]);selectedCell.result=calculate(selectedCell);$("overallScore").textContent=selectedCell.result.score;}
   }
-  async function searchAddress(event){
-    event.preventDefault();const q=$("address").value.trim();if(!q)return;
-    $("mapStatus").textContent="Searching address…";
-    try{
-      const url="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=lv&q="+encodeURIComponent(q+" Riga");
-      const response=await fetch(url,{headers:{"Accept":"application/json"}});
-      if(!response.ok)throw Error("Search service unavailable");
-      const results=await response.json();
-      if(!results.length){$("mapStatus").textContent="No result found. Try a more specific Riga address.";return;}
-      const item=results[0],lat=Number(item.lat),lon=Number(item.lon);
-      map.setView([lat,lon],15);L.marker([lat,lon]).addTo(map).bindPopup(item.display_name).openPopup();
-      $("mapStatus").textContent="Search result: "+item.display_name;
-    }catch(e){$("mapStatus").textContent="Address search failed. Try again later.";console.warn(e);}
+let searchTimer;
+let searchResults = [];
+
+function hideSuggestions() {
+  const box = $("suggestions");
+  box.classList.remove("active");
+  box.innerHTML = "";
+}
+
+function showSuggestions(results) {
+  const box = $("suggestions");
+  box.innerHTML = "";
+  searchResults = results;
+
+  if (!results.length) {
+    hideSuggestions();
+    return;
   }
+
+  results.forEach((item, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "suggestion-item";
+    button.setAttribute("role", "option");
+    button.textContent = item.display_name;
+
+    button.addEventListener("click", () => {
+      $("address").value = item.display_name;
+      hideSuggestions();
+      selectAddress(item);
+    });
+
+    box.appendChild(button);
+  });
+
+  box.classList.add("active");
+}
+
+async function fetchSuggestions(query) {
+  if (query.length < 3) {
+    hideSuggestions();
+    return;
+  }
+
+  try {
+    const url =
+      "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=lv&q=" +
+      encodeURIComponent(query + " Riga");
+
+    const response = await fetch(url, {
+      headers: { "Accept": "application/json" }
+    });
+
+    if (!response.ok) throw Error("Search service unavailable");
+
+    const results = await response.json();
+
+    if ($("address").value.trim() === query) {
+      showSuggestions(results);
+    }
+  } catch (error) {
+    console.warn("Address suggestions failed:", error);
+  }
+}
+
+function selectAddress(item) {
+  const lat = Number(item.lat);
+  const lon = Number(item.lon);
+
+  map.setView([lat, lon], 16);
+
+  L.marker([lat, lon])
+    .addTo(map)
+    .bindPopup(item.display_name)
+    .openPopup();
+
+  $("mapStatus").textContent = "Search result: " + item.display_name;
+}
+
+$("address").addEventListener("input", () => {
+  clearTimeout(searchTimer);
+
+  const query = $("address").value.trim();
+
+  if (query.length < 3) {
+    hideSuggestions();
+    return;
+  }
+
+  searchTimer = setTimeout(() => {
+    fetchSuggestions(query);
+  }, 1000);
+});
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".search-box")) {
+    hideSuggestions();
+  }
+});
+
+async function searchAddress(event) {
+  event.preventDefault();
+
+  const query = $("address").value.trim();
+  if (!query) return;
+
+  if (searchResults.length) {
+    selectAddress(searchResults[0]);
+    hideSuggestions();
+    return;
+  }
+
+  $("mapStatus").textContent = "Searching address…";
+
+  try {
+    const url =
+      "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=lv&q=" +
+      encodeURIComponent(query + " Riga");
+
+    const response = await fetch(url, {
+      headers: { "Accept": "application/json" }
+    });
+
+    if (!response.ok) throw Error("Search service unavailable");
+
+    const results = await response.json();
+
+    if (!results.length) {
+      $("mapStatus").textContent =
+        "No result found. Try a more specific Riga address.";
+      return;
+    }
+
+    selectAddress(results[0]);
+    hideSuggestions();
+
+  } catch (error) {
+    $("mapStatus").textContent =
+      "Address search failed. Try again later.";
+    console.warn(error);
+  }
+}
   renderFactors();
   $("searchForm").addEventListener("submit",searchAddress);
   map.on("moveend",()=>{clearTimeout(window.__rciGridTimer);window.__rciGridTimer=setTimeout(generateGrid,120);});
