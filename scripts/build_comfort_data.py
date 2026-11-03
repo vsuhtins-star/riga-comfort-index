@@ -30,25 +30,35 @@ QUERY = f"""
   nwr["leisure"~"^(park|garden|nature_reserve|recreation_ground|village_green)$"]{BBOX};
   nwr["landuse"="forest"]{BBOX};
   nwr["natural"~"^(wood|forest|grassland)$"]{BBOX};
+
   nwr["highway"="bus_stop"]{BBOX};
   nwr["public_transport"~"^(platform|stop_position|station)$"]{BBOX};
   nwr["railway"~"^(tram_stop|station|halt|subway_entrance|tram)$"]{BBOX};
-  nwr["amenity"~"^(bus_station|school|kindergarten|college|university|hospital|clinic|doctors|dentist|pharmacy)$"]{BBOX};
+  nwr["amenity"="bus_station"]{BBOX};
+
+  nwr["amenity"~"^(school|kindergarten|college|university)$"]{BBOX};
+  nwr["building"~"^(school|kindergarten|university)$"]{BBOX};
+
+  nwr["amenity"~"^(hospital|clinic|doctors|dentist)$"]{BBOX};
   nwr["healthcare"]{BBOX};
-  nwr["building"~"^(school|kindergarten|university|hospital|clinic)$"]{BBOX};
+  nwr["building"~"^(hospital|clinic)$"]{BBOX};
+
   nwr["shop"~"^(supermarket|convenience|pharmacy)$"]{BBOX};
+  nwr["amenity"="pharmacy"]{BBOX};
 );
 out center tags;
 """
 
 def categories(tags: dict) -> list[str]:
     result: list[str] = []
+
     if (
         tags.get("leisure") in {"park", "garden", "nature_reserve", "recreation_ground", "village_green"}
         or tags.get("landuse") == "forest"
         or tags.get("natural") in {"wood", "forest", "grassland"}
     ):
         result.append("green")
+
     if (
         tags.get("highway") == "bus_stop"
         or tags.get("public_transport") in {"platform", "stop_position", "station"}
@@ -56,14 +66,26 @@ def categories(tags: dict) -> list[str]:
         or tags.get("amenity") == "bus_station"
     ):
         result.append("transit")
+
     if (
-        tags.get("amenity") in {"school", "kindergarten", "college", "university", "hospital", "clinic", "doctors", "dentist"}
-        or bool(tags.get("healthcare"))
-        or tags.get("building") in {"school", "kindergarten", "university", "hospital", "clinic"}
+        tags.get("amenity") in {"school", "kindergarten", "college", "university"}
+        or tags.get("building") in {"school", "kindergarten", "university"}
     ):
-        result.append("schools")
-    if tags.get("shop") in {"supermarket", "convenience", "pharmacy"} or tags.get("amenity") == "pharmacy":
+        result.append("education")
+
+    if (
+        tags.get("amenity") in {"hospital", "clinic", "doctors", "dentist"}
+        or bool(tags.get("healthcare"))
+        or tags.get("building") in {"hospital", "clinic"}
+    ):
+        result.append("healthcare")
+
+    if (
+        tags.get("shop") in {"supermarket", "convenience", "pharmacy"}
+        or tags.get("amenity") == "pharmacy"
+    ):
         result.append("shops")
+
     return result
 
 def get_coordinates(element: dict):
