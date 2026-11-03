@@ -8,11 +8,17 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <style>
 :root{--ink:#182522;--muted:#697773;--paper:#f6f7f2;--panel:#fff;--line:#e2e8e2;--green:#236b4e;--mint:#dcefe3;--orange:#bd6b3e;--shadow:0 12px 34px rgba(19,40,31,.10)}
-*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper)}
-.app{height:100%;display:grid;grid-template-rows:auto 1fr}header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 20px;background:#fff;border-bottom:1px solid var(--line);z-index:1000}
-.brand{display:flex;align-items:center;gap:12px;min-width:0}.mark{width:38px;height:38px;background:var(--green);color:white;display:grid;place-items:center;border-radius:12px;font-size:21px;font-weight:800}h1{margin:0;font-size:18px;letter-spacing:-.04em}.subtitle{color:var(--muted);font-size:12px;margin-top:3px}
-.header-right{display:flex;align-items:center;gap:12px}.status{display:inline-flex;align-items:center;gap:7px;background:#fff2e7;color:#884b2b;border:1px solid #f0d5c2;border-radius:999px;padding:7px 11px;font-size:11px;font-weight:750;white-space:nowrap}.status:before{content:"";width:7px;height:7px;border-radius:50%;background:#d6814c}
-
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper)}
+.app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr)}
+header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 20px;background:#fff;border-bottom:1px solid var(--line);z-index:1000}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{width:38px;height:38px;background:var(--green);color:white;display:grid;place-items:center;border-radius:12px;font-size:21px;font-weight:800;flex:0 0 auto}
+h1{margin:0;font-size:18px;letter-spacing:-.04em}
+.subtitle{color:var(--muted);font-size:12px;margin-top:3px}
+.header-right{display:flex;align-items:center;gap:12px}
+.status{display:inline-flex;align-items:center;gap:7px;background:#fff2e7;color:#884b2b;border:1px solid #f0d5c2;border-radius:999px;padding:7px 11px;font-size:11px;font-weight:750;white-space:nowrap}
+.status:before{content:"";width:7px;height:7px;border-radius:50%;background:#d6814c}
 .search{display:flex;align-items:flex-start;gap:7px;width:min(420px,42vw);min-width:0}
 .search-box{position:relative;flex:1;min-width:0}
 .search-box input{display:block;width:100%;box-sizing:border-box}
@@ -27,12 +33,13 @@ button{border:0;border-radius:10px;background:var(--green);color:white;padding:1
 .suggestion-item:last-child{border-bottom:0}
 .suggestion-item:hover,.suggestion-item:focus{background:#f0f5f3;color:var(--green);outline:none}
 .layout{display:grid;grid-template-columns:340px minmax(0,1fr);min-height:0}
-.sidebar{overflow:auto;padding:20px;background:#fbfcf8;border-right:1px solid var(--line)}
+.sidebar{overflow:auto;padding:20px;background:#fbfcf8;border-right:1px solid var(--line);min-height:0}
 .eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.13em;font-weight:800;color:var(--green)}
 h2{font-size:26px;line-height:1.08;letter-spacing:-.05em;margin:9px 0 10px}
 .intro p,.small{font-size:12px;line-height:1.55;color:var(--muted)}
 .card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;margin-top:15px}
 .card h3{font-size:13px;margin:0 0 12px}
+.score-card{margin-top:15px}
 .factor{padding:11px 0;border-top:1px solid #edf0eb}
 .factor:first-of-type{border-top:0}
 .factor-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:650}
@@ -41,56 +48,84 @@ h2{font-size:26px;line-height:1.08;letter-spacing:-.05em;margin:9px 0 10px}
 input[type=range]{width:100%;accent-color:var(--green);margin:9px 0 0}
 .factor-help{font-size:10px;color:var(--muted);margin-top:4px}
 .metric{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
-.metric div{background:#f6f8f3;border-radius:11px;padding:11px}
-.metric strong{display:block;font-size:20px;letter-spacing:-.04em}
+.metric div{background:#f6f8f3;border-radius:11px;padding:11px;min-width:0}
+.metric strong{display:block;font-size:20px;letter-spacing:-.04em;overflow-wrap:anywhere}
 .metric span{font-size:10px;color:var(--muted)}
 .legend{display:flex;gap:5px;margin:10px 0}
 .legend span{height:9px;flex:1;border-radius:3px}
+.factor-details{margin-top:12px}
+.factor-details>summary{display:none}
+.details-content>.card{margin-top:12px}
+.score-explanation{margin:8px 2px}
 #map{height:100%;min-height:420px;background:#e9eee8}
 .map-wrap{position:relative;min-height:0}
 .map-chip{position:absolute;left:14px;bottom:14px;z-index:500;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:12px;padding:10px 13px;max-width:min(520px,calc(100% - 28px));box-shadow:var(--shadow);font-size:11px}
 .map-chip strong{display:block;margin-bottom:3px}
 .map-chip span{color:var(--muted)}
+.mobile-map-info{display:none}
 .leaflet-popup-content{line-height:1.5}
 .popup-score{font-size:27px;font-weight:800;color:var(--green)}
 .popup-note{max-width:240px;font-size:11px;color:var(--muted)}
 .pill{display:inline-block;border-radius:999px;background:#e8f3eb;color:#236b4e;padding:3px 7px;font-size:10px;font-weight:750;margin:2px 3px 2px 0}
 
-@media (max-width: 850px) {
-  html,body{height:100%;min-height:100%}
-  .app{height:100dvh;min-height:620px;grid-template-rows:auto minmax(0,1fr)}
-  header{flex-wrap:wrap;align-items:center;gap:12px;padding:12px 16px}
+@media(max-width:850px){
+  html,body{height:100%;overflow:hidden}
+  .app{height:100dvh;min-height:0;grid-template-rows:auto minmax(0,1fr)}
+  header{flex-wrap:wrap;gap:10px;padding:12px 16px}
   .header-right{width:100%;display:flex;flex-direction:row;align-items:center;gap:10px}
   .header-right .status{flex:0 0 auto}
   .search{width:auto;flex:1;min-width:0}
-  .layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(190px,36vh) minmax(360px,1fr);min-height:0}
-  .sidebar{max-height:none;min-height:0;overflow-y:auto;border-right:0;border-bottom:1px solid var(--line);padding:14px 16px}
-  #map{height:100%;min-height:360px}
+  .layout{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);min-height:0}
+  .sidebar{max-height:38vh;overflow-y:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px 16px}
+  #map{height:100%;min-height:0}
+  .factor-details>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;list-style:none;cursor:pointer;user-select:none;background:#f3f7f1;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--green);font-size:14px;font-weight:750}
+  .factor-details>summary::-webkit-details-marker{display:none}
+  .summary-desktop{display:none}
+  .summary-mobile{display:inline}
+  .summary-chevron{font-size:20px;line-height:1;color:var(--muted);transition:transform .2s}
+  .factor-details[open]>summary .summary-chevron{transform:rotate(180deg)}
+  .factor-details:not([open]) .details-content{display:none}
+  .factor-details .details-content>.card{margin-top:10px}
+  .factor-details .data-card{margin-bottom:4px}
+  .desktop-map-info{display:none}
+  .mobile-map-info{display:block}
+  .mobile-map-info summary{list-style:none;display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:750;color:var(--ink);white-space:nowrap}
+  .mobile-map-info summary::-webkit-details-marker{display:none}
+  .mobile-map-info summary span{color:var(--green);font-size:15px}
+  .mobile-map-info p{max-width:270px;margin:8px 0 0;font-size:11px;line-height:1.45;color:var(--muted)}
+  .map-chip{left:10px;bottom:12px;padding:9px 12px;border-radius:999px;max-width:calc(100% - 20px)}
 }
-
-@media (max-width: 560px) {
-  .app{min-height:680px}
-  header{padding:11px 12px;gap:10px}
+@media(max-width:560px){
+  .app{min-height:0}
+  header{padding:10px 12px;gap:9px}
   .brand{gap:9px}
   .mark{width:34px;height:34px;font-size:19px;border-radius:10px}
   h1{font-size:17px}
   .subtitle{font-size:10px}
-  .header-right{flex-direction:column;align-items:stretch;gap:8px}
+  .header-right{flex-direction:column;align-items:stretch;gap:7px}
   .header-right .status{align-self:flex-start;font-size:10px;padding:6px 9px}
   .search{width:100%;display:flex;gap:7px}
   .search input{font-size:14px;padding:10px}
   .search button{height:39px;padding:0 13px;font-size:13px}
   .suggestions{max-height:210px}
   .suggestion-item{padding:10px;font-size:12px}
-  .layout{grid-template-rows:minmax(190px,34vh) minmax(390px,1fr)}
-  .sidebar{padding:12px;max-height:none}
-  h2{font-size:23px}
-  .card{padding:12px;margin-top:11px}
+  .layout{grid-template-rows:auto minmax(0,1fr)}
+  .sidebar{padding:10px 12px;max-height:37vh;overflow-y:auto}
+  .intro .eyebrow{font-size:9px}
+  .intro h2{font-size:20px;line-height:1.08;margin:5px 0 0}
+  .intro p{display:none}
+  .score-card{padding:10px;margin-top:9px;border-radius:13px}
+  .score-card h3{font-size:12px;margin:0 0 8px}
   .metric{gap:5px}
-  .metric div{padding:8px}
+  .metric div{padding:8px;border-radius:9px}
   .metric strong{font-size:17px}
-  #map{min-height:390px}
-  .map-chip{left:9px;bottom:9px;padding:8px 10px;font-size:10px}
+  .metric span{font-size:9px;line-height:1.25}
+  .factor-details{margin-top:9px}
+  .factor-details>summary{padding:10px 12px;font-size:13px}
+  .details-content>.card{padding:11px}
+  .details-content .factor{padding:9px 0}
+  #map{min-height:0}
+  .map-chip{left:9px;bottom:10px;padding:8px 11px}
 }
 </style>
 </head>
@@ -102,22 +137,47 @@ input[type=range]{width:100%;accent-color:var(--green);margin:9px 0 0}
 </header>
 <div class="layout">
 <aside class="sidebar">
-  <div class="intro"><div class="eyebrow">City comfort, made legible</div><h2>Where does Riga feel best to live?</h2><p>Explore a 500 m grid across Riga neighbourhoods. Five real-world facility categories contribute to the comfort score. Noise and major-road exposure are excluded until reliable data is available.</p></div>
-  <div class="card"><h3>Comfort score</h3><div class="metric">
-  <div><strong id="overallScore">—</strong><span>Comfort score / 100</span></div>
-  <div><strong id="coverageScore">—</strong><span>Data coverage</span></div>
-  <div><strong id="dataCount">Loading</strong><span>Mapped OSM features</span></div>
-</div><div class="legend"><span style="background:#b85e45"></span><span style="background:#d68b61"></span><span style="background:#e8c978"></span><span style="background:#a8cba0"></span><span style="background:#43866a"></span></div><p class="small">Scores are experimental proximity estimates, not a scientific or official ranking. Missing map data does not mean a facility is absent.</p></div>
-  <div class="card"><h3>Choose what matters</h3><div id="factors"></div></div>
-  <div class="card"><h3>Data notes</h3><p class="small" id="dataNote">Loading neighbourhood boundaries and public map data…</p><p class="small">
+  <div class="intro">
+    <div class="eyebrow">City comfort, made legible</div>
+    <h2>Where does Riga feel best to live?</h2>
+    <p>Explore a 500 m grid across Riga neighbourhoods. Five real-world facility categories contribute to the comfort score. Noise and major-road exposure are excluded until reliable data is available.</p>
+  </div>
+
+  <section class="card score-card">
+    <h3>Comfort score</h3>
+    <div class="metric">
+      <div><strong id="overallScore">—</strong><span>Comfort score / 100</span></div>
+      <div><strong id="coverageScore">—</strong><span>Data coverage</span></div>
+      <div><strong id="dataCount">Loading</strong><span>Mapped OSM features</span></div>
+    </div>
+  </section>
+
+  <details class="factor-details" id="factorDetails" open>
+    <summary><span class="summary-desktop">Scoring factors & data notes</span><span class="summary-mobile">Show comfort factors</span><span class="summary-chevron" aria-hidden="true">⌄</span></summary>
+    <div class="details-content">
+      <div class="legend"><span style="background:#b85e45"></span><span style="background:#d68b61"></span><span style="background:#e8c978"></span><span style="background:#a8cba0"></span><span style="background:#43866a"></span></div>
+      <p class="small score-explanation">Scores are experimental proximity estimates, not a scientific or official ranking. Missing map data does not mean a facility is absent.</p>
+      <div class="card"><h3>Choose what matters</h3><div id="factors"></div></div>
+      <div class="card data-card"><h3>Data notes</h3><p class="small" id="dataNote">Loading neighbourhood boundaries and public map data…</p><p class="small">
 Sources: OpenStreetMap contributors and Riga neighbourhood boundaries.
 Scores use estimated distance to mapped parks, public transport, education,
 healthcare and daily amenities. Noise and major-road exposure are excluded
 until reliable datasets are integrated. Missing mapped facilities are treated
 as unavailable data, not proof of absence.
 </p></div>
+    </div>
+  </details>
 </aside>
-<main class="map-wrap"><div id="map"></div><div class="map-chip"><strong>Riga · 500 m analysis grid</strong><span id="mapStatus">Loading neighbourhood boundaries…</span></div></main>
+<main class="map-wrap">
+  <div id="map"></div>
+  <div class="map-chip">
+    <div class="desktop-map-info"><strong>Riga · 500 m analysis grid</strong><span id="mapStatus">Loading neighbourhood boundaries…</span></div>
+    <details class="mobile-map-info">
+      <summary>500 m grid · Map info <span aria-hidden="true">ⓘ</span></summary>
+      <p id="mapStatusMobile">Loading neighbourhood boundaries…</p>
+    </details>
+  </div>
+</main>
 </div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -468,7 +528,6 @@ $("address").addEventListener("input", () => {
   clearTimeout(searchTimer);
 
   const query = $("address").value.trim();
-  searchResults = [];
 
   if (query.length < 3) {
     hideSuggestions();
@@ -528,6 +587,20 @@ async function searchAddress(event) {
     console.warn(error);
   }
 }
+  const factorDetails = $("factorDetails");
+  const mobileLayout = window.matchMedia("(max-width: 850px)");
+  const syncFactorDetails = () => {
+    if (mobileLayout.matches) factorDetails.removeAttribute("open");
+    else factorDetails.setAttribute("open", "");
+  };
+  syncFactorDetails();
+  mobileLayout.addEventListener?.("change", syncFactorDetails);
+
+  const mapStatusObserver = new MutationObserver(() => {
+    $("mapStatusMobile").textContent = $("mapStatus").textContent;
+  });
+  mapStatusObserver.observe($("mapStatus"), { childList: true, characterData: true, subtree: true });
+
   renderFactors();
   $("searchForm").addEventListener("submit",searchAddress);
   map.on("moveend",()=>{clearTimeout(window.__rciGridTimer);window.__rciGridTimer=setTimeout(generateGrid,120);});
