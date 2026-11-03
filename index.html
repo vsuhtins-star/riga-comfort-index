@@ -12,90 +12,85 @@
 .app{height:100%;display:grid;grid-template-rows:auto 1fr}header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 20px;background:#fff;border-bottom:1px solid var(--line);z-index:1000}
 .brand{display:flex;align-items:center;gap:12px;min-width:0}.mark{width:38px;height:38px;background:var(--green);color:white;display:grid;place-items:center;border-radius:12px;font-size:21px;font-weight:800}h1{margin:0;font-size:18px;letter-spacing:-.04em}.subtitle{color:var(--muted);font-size:12px;margin-top:3px}
 .header-right{display:flex;align-items:center;gap:12px}.status{display:inline-flex;align-items:center;gap:7px;background:#fff2e7;color:#884b2b;border:1px solid #f0d5c2;border-radius:999px;padding:7px 11px;font-size:11px;font-weight:750;white-space:nowrap}.status:before{content:"";width:7px;height:7px;border-radius:50%;background:#d6814c}
-.search{display:flex;gap:7px;width:min(360px,40vw)}input,button{font:inherit}input[type=search]{min-width:0;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none}button{border:0;border-radius:10px;background:var(--green);color:white;padding:10px 14px;font-weight:700;cursor:pointer}.layout{display:grid;grid-template-columns:340px minmax(0,1fr);min-height:0}.sidebar{overflow:auto;padding:20px;background:#fbfcf8;border-right:1px solid var(--line)}.eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.13em;font-weight:800;color:var(--green)}h2{font-size:26px;line-height:1.08;letter-spacing:-.05em;margin:9px 0 10px}.intro p,.small{font-size:12px;line-height:1.55;color:var(--muted)}.card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;margin-top:15px}.card h3{font-size:13px;margin:0 0 12px}.factor{padding:11px 0;border-top:1px solid #edf0eb}.factor:first-of-type{border-top:0}.factor-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:650}.factor-top label{display:flex;align-items:center;gap:8px}.factor-top output{color:var(--green);font-variant-numeric:tabular-nums}input[type=range]{width:100%;accent-color:var(--green);margin:9px 0 0}.factor-help{font-size:10px;color:var(--muted);margin-top:4px}.metric{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.metric div{background:#f6f8f3;border-radius:11px;padding:11px}.metric strong{display:block;font-size:20px;letter-spacing:-.04em}.metric span{font-size:10px;color:var(--muted)}.legend{display:flex;gap:5px;margin:10px 0}.legend span{height:9px;flex:1;border-radius:3px}#map{height:100%;min-height:420px;background:#e9eee8}.map-wrap{position:relative;min-height:0}.map-chip{position:absolute;left:14px;bottom:14px;z-index:500;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:12px;padding:10px 13px;max-width:min(520px,calc(100% - 28px));box-shadow:var(--shadow);font-size:11px}.map-chip strong{display:block;margin-bottom:3px}.map-chip span{color:var(--muted)}.leaflet-popup-content{line-height:1.5}.popup-score{font-size:27px;font-weight:800;color:var(--green)}.popup-note{max-width:240px;font-size:11px;color:var(--muted)}.pill{display:inline-block;border-radius:999px;background:#e8f3eb;color:#236b4e;padding:3px 7px;font-size:10px;font-weight:750;margin:2px 3px 2px 0}
+
+.search{display:flex;align-items:flex-start;gap:7px;width:min(420px,42vw);min-width:0}
+.search-box{position:relative;flex:1;min-width:0}
+.search-box input{display:block;width:100%;box-sizing:border-box}
+input,button{font:inherit}
+input[type=search]{min-width:0;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none}
+input[type=search]:focus{border-color:#8aaf9b;box-shadow:0 0 0 3px rgba(35,107,78,.10)}
+button{border:0;border-radius:10px;background:var(--green);color:white;padding:10px 14px;font-weight:700;cursor:pointer}
+.search button{align-self:flex-start;height:40px;white-space:nowrap;flex:0 0 auto}
+.suggestions{display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:2000;max-height:260px;overflow-y:auto;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(19,40,31,.16)}
+.suggestions.active{display:block}
+.suggestion-item{display:block;width:100%;min-height:0;padding:10px 12px;border:0;border-bottom:1px solid #edf0f2;border-radius:0;background:#fff;color:var(--ink);text-align:left;font-size:13px;font-weight:550;line-height:1.4;white-space:normal;cursor:pointer}
+.suggestion-item:last-child{border-bottom:0}
+.suggestion-item:hover,.suggestion-item:focus{background:#f0f5f3;color:var(--green);outline:none}
+.layout{display:grid;grid-template-columns:340px minmax(0,1fr);min-height:0}
+.sidebar{overflow:auto;padding:20px;background:#fbfcf8;border-right:1px solid var(--line)}
+.eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.13em;font-weight:800;color:var(--green)}
+h2{font-size:26px;line-height:1.08;letter-spacing:-.05em;margin:9px 0 10px}
+.intro p,.small{font-size:12px;line-height:1.55;color:var(--muted)}
+.card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;margin-top:15px}
+.card h3{font-size:13px;margin:0 0 12px}
+.factor{padding:11px 0;border-top:1px solid #edf0eb}
+.factor:first-of-type{border-top:0}
+.factor-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:650}
+.factor-top label{display:flex;align-items:center;gap:8px}
+.factor-top output{color:var(--green);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--green);margin:9px 0 0}
+.factor-help{font-size:10px;color:var(--muted);margin-top:4px}
+.metric{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.metric div{background:#f6f8f3;border-radius:11px;padding:11px}
+.metric strong{display:block;font-size:20px;letter-spacing:-.04em}
+.metric span{font-size:10px;color:var(--muted)}
+.legend{display:flex;gap:5px;margin:10px 0}
+.legend span{height:9px;flex:1;border-radius:3px}
+#map{height:100%;min-height:420px;background:#e9eee8}
+.map-wrap{position:relative;min-height:0}
+.map-chip{position:absolute;left:14px;bottom:14px;z-index:500;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:12px;padding:10px 13px;max-width:min(520px,calc(100% - 28px));box-shadow:var(--shadow);font-size:11px}
+.map-chip strong{display:block;margin-bottom:3px}
+.map-chip span{color:var(--muted)}
+.leaflet-popup-content{line-height:1.5}
+.popup-score{font-size:27px;font-weight:800;color:var(--green)}
+.popup-note{max-width:240px;font-size:11px;color:var(--muted)}
+.pill{display:inline-block;border-radius:999px;background:#e8f3eb;color:#236b4e;padding:3px 7px;font-size:10px;font-weight:750;margin:2px 3px 2px 0}
+
 @media (max-width: 850px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    max-height: 38vh;
-    overflow-y: auto;
-    border-right: 0;
-    border-bottom: 1px solid #ddd;
-  }
-
-  #map {
-    min-height: 55vh;
-  }
-
-  .header {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .header-right {
-    width: 100%;
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .search {
-    width: 100%;
-  }
-
-  .search-box {
-    flex: 1;
-  }
+  html,body{height:100%;min-height:100%}
+  .app{height:100dvh;min-height:620px;grid-template-rows:auto minmax(0,1fr)}
+  header{flex-wrap:wrap;align-items:center;gap:12px;padding:12px 16px}
+  .header-right{width:100%;display:flex;flex-direction:row;align-items:center;gap:10px}
+  .header-right .status{flex:0 0 auto}
+  .search{width:auto;flex:1;min-width:0}
+  .layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(190px,36vh) minmax(360px,1fr);min-height:0}
+  .sidebar{max-height:none;min-height:0;overflow-y:auto;border-right:0;border-bottom:1px solid var(--line);padding:14px 16px}
+  #map{height:100%;min-height:360px}
 }
 
 @media (max-width: 560px) {
-  .header {
-    padding: 12px;
-    gap: 10px;
-  }
-
-  .header h1 {
-    font-size: 19px;
-  }
-
-  .header-right {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-
-  .header-right .status {
-    font-size: 11px;
-  }
-
-  .search {
-    width: 100%;
-    display: flex;
-    gap: 6px;
-  }
-
-  .search input {
-    min-width: 0;
-    font-size: 14px;
-  }
-
-  .search button {
-    flex-shrink: 0;
-  }
-
-  .sidebar {
-    padding: 12px;
-    max-height: 36vh;
-  }
-
-  #map {
-    min-height: 58vh;
-  }
-
-  .suggestions {
-    max-height: 200px;
-  }
+  .app{min-height:680px}
+  header{padding:11px 12px;gap:10px}
+  .brand{gap:9px}
+  .mark{width:34px;height:34px;font-size:19px;border-radius:10px}
+  h1{font-size:17px}
+  .subtitle{font-size:10px}
+  .header-right{flex-direction:column;align-items:stretch;gap:8px}
+  .header-right .status{align-self:flex-start;font-size:10px;padding:6px 9px}
+  .search{width:100%;display:flex;gap:7px}
+  .search input{font-size:14px;padding:10px}
+  .search button{height:39px;padding:0 13px;font-size:13px}
+  .suggestions{max-height:210px}
+  .suggestion-item{padding:10px;font-size:12px}
+  .layout{grid-template-rows:minmax(190px,34vh) minmax(390px,1fr)}
+  .sidebar{padding:12px;max-height:none}
+  h2{font-size:23px}
+  .card{padding:12px;margin-top:11px}
+  .metric{gap:5px}
+  .metric div{padding:8px}
+  .metric strong{font-size:17px}
+  #map{min-height:390px}
+  .map-chip{left:9px;bottom:9px;padding:8px 10px;font-size:10px}
 }
 </style>
 </head>
@@ -217,7 +212,7 @@ as unavailable data, not proof of absence.
       try{localStorage.setItem(CACHE_KEY,JSON.stringify({savedAt:Date.now(),features}));}catch(_){}
       $("dataCount").textContent=features.length.toLocaleString();
       const generated=dataset.properties&&dataset.properties.generated_at?new Date(dataset.properties.generated_at).toLocaleDateString():"date unavailable";
-      $("dataNote").textContent="Prepared OpenStreetMap snapshot loaded (updated "+generated+"). The website does not query Overpass on page load. Four positive factors use proximity estimates; noise and major-road factors remain illustrative.";
+      $("dataNote").textContent="Prepared OpenStreetMap snapshot loaded (updated "+generated+"). The website does not query Overpass on page load. Five positive factors use real OpenStreetMap proximity estimates; noise and major-road factors are excluded from scoring.";
       generateGrid();return;
     }catch(error){
       console.warn("Could not load prepared comfort data:",error);
@@ -227,7 +222,7 @@ as unavailable data, not proof of absence.
         $("dataNote").textContent="Prepared dataset could not be loaded; using a previously cached snapshot. The website itself makes no live Overpass request.";
       }else{
         osmLoaded=false;$("dataCount").textContent="Unavailable";
-        $("dataNote").textContent="The prepared dataset has not been generated yet or could not be loaded. The map will temporarily use illustrative values for the four facility factors. Check that data/comfort-features.geojson exists in the repository.";
+        $("dataNote").textContent="The prepared dataset has not been generated yet or could not be loaded. The map will show unavailable scores until the prepared OpenStreetMap dataset is available. Check that data/comfort-features.geojson exists in the repository.";
       }
       generateGrid();
     }
@@ -347,7 +342,7 @@ as unavailable data, not proof of absence.
         rect.addTo(gridLayer);cells.push(cell);
       }
     }
-    $("mapStatus").textContent=`${cells.length.toLocaleString()} grid cells in Riga neighbourhoods. ${osmLoaded?"OpenStreetMap proximity data is active; noise and major-road factors remain illustrative.":"Using illustrative estimates until the prepared OpenStreetMap dataset is available."} Select a cell for details.`;
+    $("mapStatus").textContent=`${cells.length.toLocaleString()} grid cells in Riga neighbourhoods. ${osmLoaded?"OpenStreetMap proximity data is active; noise and major-road factors are excluded from scoring.":"Prepared OpenStreetMap data is unavailable; scores cannot currently be calculated."} Select a cell for details.`;
     if(selectedCell) $("overallScore").textContent=selectedCell.result.score;
   }
 function selectCell(cell,layer){
@@ -473,6 +468,7 @@ $("address").addEventListener("input", () => {
   clearTimeout(searchTimer);
 
   const query = $("address").value.trim();
+  searchResults = [];
 
   if (query.length < 3) {
     hideSuggestions();
