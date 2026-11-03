@@ -40,10 +40,11 @@
   const FACTORS=[
     {id:"green",label:"Parks & green space",group:"Positive",weight:80,real:true},
     {id:"transit",label:"Public transport",group:"Positive",weight:85,real:true},
-    {id:"schools",label:"Schools & healthcare",group:"Positive",weight:55,real:true},
+    {id:"education",label:"Schools & education",group:"Positive",weight:55,real:true},
+    {id:"healthcare",label:"Healthcare",group:"Positive",weight:55,real:true},
     {id:"shops",label:"Daily amenities",group:"Positive",weight:60,real:true},
-    {id:"noise",label:"Noise exposure",group:"Negative",weight:45,real:false},
-    {id:"roads",label:"Major roads",group:"Negative",weight:45,real:false}
+    {id:"noise",label:"Noise exposure",group:"Negative",weight:0,real:false},
+    {id:"roads",label:"Major roads",group:"Negative",weight:0,real:false}
   ];
   const settings=Object.fromEntries(FACTORS.map(f=>[f.id,{enabled:true,weight:f.weight}]));
   const $=id=>document.getElementById(id);
@@ -78,10 +79,26 @@
   function hash(a,b,s){let n=Math.sin(a*12.9898+b*78.233+s*37.719)*43758.5453;return n-Math.floor(n);}
   function categories(tags){
     const c=[];
-    if(/^(park|garden|nature_reserve|recreation_ground|village_green)$/.test(tags.leisure||"")||tags.landuse==="forest"||/^(wood|forest|grassland)$/.test(tags.natural||""))c.push("green");
-    if(tags.highway==="bus_stop"||/^(platform|stop_position|station)$/.test(tags.public_transport||"")||/^(tram_stop|station|halt|subway_entrance|tram)$/.test(tags.railway||"")||tags.amenity==="bus_station")c.push("transit");
-    if(/^(school|kindergarten|college|university|hospital|clinic|doctors|dentist)$/.test(tags.amenity||"")||tags.healthcare||/^(school|kindergarten|university|hospital|clinic)$/.test(tags.building||""))c.push("schools");
-    if(/^(supermarket|convenience|pharmacy)$/.test(tags.shop||"")||tags.amenity==="pharmacy")c.push("shops");
+  
+    if(/^(park|garden|nature_reserve|recreation_ground|village_green)$/.test(tags.leisure||"") ||
+       tags.landuse==="forest" ||
+       /^(wood|forest|grassland)$/.test(tags.natural||"")) c.push("green");
+  
+    if(tags.highway==="bus_stop" ||
+       /^(platform|stop_position|station)$/.test(tags.public_transport||"") ||
+       /^(tram_stop|station|halt|subway_entrance|tram)$/.test(tags.railway||"") ||
+       tags.amenity==="bus_station") c.push("transit");
+  
+    if(/^(school|kindergarten|college|university)$/.test(tags.amenity||"") ||
+       /^(school|kindergarten|university)$/.test(tags.building||"")) c.push("education");
+  
+    if(/^(hospital|clinic|doctors|dentist)$/.test(tags.amenity||"") ||
+       !!tags.healthcare ||
+       /^(hospital|clinic)$/.test(tags.building||"")) c.push("healthcare");
+  
+    if(/^(supermarket|convenience|pharmacy)$/.test(tags.shop||"") ||
+       tags.amenity==="pharmacy") c.push("shops");
+  
     return c;
   }
   function normalize(elements){
@@ -123,26 +140,89 @@
       generateGrid();
     }
   }
-  function proximitySignal(category,lat,lon,radiusKm){
-    if(!osmLoaded)return null;let nearest=Infinity;
-    for(const f of osmFeatures){if(!f.categories.includes(category))continue;const dy=(f.lat-lat)*111,dx=(f.lon-lon)*111*Math.cos(lat*Math.PI/180);nearest=Math.min(nearest,Math.sqrt(dx*dx+dy*dy));}
-    return Number.isFinite(nearest)?Math.max(0,Math.min(1,1-nearest/radiusKm)):null;
+  const DISTANCE_BANDS = {
+    green: [[0,100],[250,90],[500,70],[1000,35],[1500,0]],
+    transit: [[0,100],[150,90],[300,70],[500,40],[800,0]],
+    education: [[0,100],[300,90],[600,70],[1000,40],[1500,0]],
+    healthcare: [[0,100],[300,90],[600,70],[1200,35],[2000,0]],
+    shops: [[0,100],[200,90],[400,70],[700,35],[1000,0]]
+  };
+  
+  function distanceScore(category,distanceMetres){
+    const bands=DISTANCE_BANDS[category];
+    if(!bands)return null;
+  
+    for(let i=1;i<bands.length;i++){
+      const [d2,s2]=bands[i];
+      const [d1,s1]=bands[i-1];
+  
+      if(distanceMetres<=d2){
+        const ratio=(distanceMetres-d1)/(d2-d1);
+        return (s1+(s2-s1)*ratio)/100;
+      }
+    }
+  
+    return 0;
+  }
+  
+  function proximitySignal(category,lat,lon){
+    if(!osmLoaded)return null;
+  
+    let nearest=Infinity;
+  
+    for(const f of osmFeatures){
+      if(!f.categories.includes(category))continue;
+  
+      const dy=(f.lat-lat)*111000;
+      const dx=(f.lon-lon)*111000*Math.cos(lat*Math.PI/180);
+      nearest=Math.min(nearest,Math.sqrt(dx*dx+dy*dy));
+    }
+  
+    return Number.isFinite(nearest)
+      ? distanceScore(category,nearest)
+      : null;
   }
   function signals(x,y){
-    const ll=unproject(x,y),dx=(x-cxy[0])/1000,dy=(y-cxy[1])/1000,centerProximity=Math.max(0,1-Math.sqrt(dx*dx+dy*dy)/12),a=Math.round(x/CELL),b=Math.round(y/CELL);
+    const ll=unproject(x,y);
+  
     return {
-      green:proximitySignal("green",ll[0],ll[1],1.5)??(.2+.65*hash(a,b,1)),
-      transit:proximitySignal("transit",ll[0],ll[1],.7)??(.25+.55*hash(a,b,2)+centerProximity*.15),
-      schools:proximitySignal("schools",ll[0],ll[1],1.5)??(.2+.6*hash(a,b,3)),
-      shops:proximitySignal("shops",ll[0],ll[1],.9)??(.2+.65*hash(a,b,4)+centerProximity*.1),
-      noise:.2+.6*hash(a,b,5)+centerProximity*.08,
-      roads:.2+.6*hash(a,b,6)
+      green:proximitySignal("green",ll[0],ll[1]),
+      transit:proximitySignal("transit",ll[0],ll[1]),
+      education:proximitySignal("education",ll[0],ll[1]),
+      healthcare:proximitySignal("healthcare",ll[0],ll[1]),
+      shops:proximitySignal("shops",ll[0],ll[1]),
+      noise:null,
+      roads:null
     };
   }
   function calculate(cell){
-    let sum=0,total=0;const breakdown=[];
-    FACTORS.forEach(f=>{if(!settings[f.id].enabled||settings[f.id].weight===0)return;const value=cell.signals[f.id],signed=f.group==="Positive"?value:(1-value);sum+=signed*settings[f.id].weight;total+=settings[f.id].weight;breakdown.push({label:f.label,group:f.group,signal:value,weight:settings[f.id].weight,real:f.real});});
-    return {score:total?Math.round(100*sum/total):0,breakdown};
+    let sum=0,total=0,possible=0;
+    const breakdown=[];
+  
+    FACTORS.forEach(f=>{
+      if(!f.real || f.weight===0 || !settings[f.id].enabled)return;
+  
+      possible+=f.weight;
+  
+      const value=cell.signals[f.id];
+  
+      if(value===null || value===undefined)return;
+  
+      sum+=value*f.weight;
+      total+=f.weight;
+  
+      breakdown.push({
+        label:f.label,
+        signal:value,
+        weight:f.weight
+      });
+    });
+  
+    return {
+      score:total?Math.round(100*sum/total):null,
+      coverage:possible?Math.round(100*total/possible):0,
+      breakdown
+    };
   }
   function color(score){if(score<25)return "#b85e45";if(score<42)return "#d68b61";if(score<58)return "#e8c978";if(score<76)return "#a8cba0";return "#43866a";}
   function renderBoundaries(){
@@ -163,7 +243,13 @@
         const swll=unproject(x,y),sell=unproject(x+step,y+step);
         const cell={id:`${Math.round(x)}:${Math.round(y)}`,lat:ll[0],lon:ll[1],bounds:[[swll[0],swll[1]],[sell[0],sell[1]]],signals:signals(cx,cy)};
         cell.result=calculate(cell);
-        const rect=L.rectangle(cell.bounds,{color:"#fff",weight:.7,opacity:.85,fillColor:color(cell.result.score),fillOpacity:.52});
+        const rect=L.rectangle(cell.bounds,{
+            color:"#fff",
+            weight:.7,
+            opacity:.85,
+            fillColor:cell.result.score===null?"#b9c0bb":color(cell.result.score),
+            fillOpacity:.52
+        });
         rect.on("click",()=>selectCell(cell,rect));
         rect.bindTooltip(`Estimated comfort score: ${cell.result.score}`,{sticky:true,direction:"top",opacity:.9});
         rect.addTo(gridLayer);cells.push(cell);
